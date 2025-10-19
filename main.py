@@ -1,20 +1,20 @@
 import pygame as pg
-from object.abstract_object.Simulator import Simulator
 
-SCREEN_WIDTH = 1800
-SCREEN_HEIGHT = 800
+from object.abstract_object.Simulator import Simulator
+from object.real_object.Robot import RobotType
 
 
 def main():
     pg.init()
 
-    screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pg.display.set_caption("RoboMaster KF Visualization System")
     clock = pg.time.Clock()
 
-    simulator = Simulator(screen)
+    simulator = Simulator()
 
     running = True
+    first_key = None
+    is_second_key = False
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -22,9 +22,33 @@ def main():
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     running = False
-                elif event.key == pg.K_SPACE:
-                    # simulator
-                    pass
+                elif is_second_key:  # 组合按键的判断
+                    if first_key == pg.K_BACKSPACE:
+                        num = None
+                        if event.key == pg.K_0:
+                            num = 0
+                        elif event.key == pg.K_1:
+                            num = 1
+                        elif event.key == pg.K_2:
+                            num = 2
+                        elif event.key == pg.K_3:
+                            num = 3
+                        elif event.key == pg.K_4:
+                            num = 4
+                        elif event.key == pg.K_5:
+                            num = 5
+                        else:
+                            continue
+
+                        simulator.robot_manage.delete_robot(num)
+
+                    is_second_key = False
+                    first_key = None
+                elif event.key == pg.K_RETURN:
+                    simulator.robot_manage.create_robot(RobotType.Hero)
+                elif event.key == pg.K_BACKSPACE:
+                    is_second_key = True
+                    first_key = event.key
 
         simulator.run()
 

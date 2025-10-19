@@ -26,3 +26,16 @@ def get_euler_rotate_matrix(rpy):
     return R
 
 
+def world_to_main_screen(world_pos, screen_center, world_scale):
+    screen_x = screen_center[0] + world_pos[0] * world_scale
+    screen_y = screen_center[1] + world_pos[1] * world_scale
+
+    return int(screen_x), int(screen_y)
+
+
+def limit_rad(angle):
+    return (angle + math.pi) % (2 * math.pi) - math.pi
+
+
+
+

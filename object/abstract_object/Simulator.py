@@ -1,33 +1,35 @@
 import time
 
-class Simulator:
-    def __init__(self, screen):
-        self.screen = screen
+from object.abstract_object.simulator_rel.Shower import Shower
+from object.abstract_object.simulator_rel.RobotManager import RobotManage
 
+from object.real_object.Robot import RobotType
+
+
+class Simulator:
+    def __init__(self):
         self.t_last = time.time()
 
-    def run(self):
-        self.update()
-        self.show()
+        self.shower = Shower()
+        self.robot_manage = RobotManage()
 
-    def update(self):
+    def run(self):
+        self.update(self.robot_manage.robots)
+        self.shower.show(self.robot_manage.robots)
+
+    def update(self, robots):
         t_cur = time.time()
         dt = t_cur - self.t_last
         self.t_last = t_cur
 
-    def show_main(self):
-        pass
+    def ui(self):
+        self.robot_manage.create_robot(RobotType.Hero)
 
-    def show_camera(self):
-        pass
 
-    def show_info(self):
-        pass
 
-    def show(self):
-        self.show_main()
-        self.show_camera()
-        self.show_info()
+
+
+
 
 
 

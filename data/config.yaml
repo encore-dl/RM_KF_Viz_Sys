@@ -21,8 +21,8 @@ Robot:
     length: 50.
     width: 40.
     armor_count: 2
-    high_height: 10.
-    low_height: 0.
+    high_height: 0.
+    low_height: 10.
     armor_size: large
 
   Engineer:
