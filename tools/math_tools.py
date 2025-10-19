@@ -1,5 +1,28 @@
-def world_to_screen(self, world_xy):
-    """将世界XY坐标转换为屏幕坐标"""
-    screen_x = self.screen_center[0] + world_xy[0] * self.world_scale
-    screen_y = self.screen_center[1] - world_xy[1] * self.world_scale  # Y轴翻转
-    return int(screen_x), int(screen_y)
+import math
+import numpy as np
+
+
+def get_euler_rotate_matrix(rpy):
+    R_x = np.array([
+        [1., 0., 0.],
+        [0., math.cos(rpy[0]), -math.sin(rpy[0])],
+        [0., math.sin(rpy[0]), math.cos(rpy[0])]
+    ])
+
+    R_y = np.array([
+        [math.cos(rpy[1]), 0., math.sin(rpy[1])],
+        [0., 1., 0.],
+        [-math.sin(rpy[1]), 0., math.cos(rpy[1])]
+    ])
+
+    R_z = np.array([
+        [math.cos(rpy[2]), -math.sin(rpy[2]), 0.],
+        [math.sin(rpy[2]), math.cos(rpy[2]), 0.],
+        [0., 0., 1.]
+    ])
+
+    R = R_z @ R_y @ R_x
+
+    return R
+
+

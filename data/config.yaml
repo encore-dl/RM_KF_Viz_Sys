@@ -1,0 +1,43 @@
+
+
+Robot:
+  Hero:
+    length: 50.
+    width: 40.
+    armor_count: 4
+    high_height: 15.
+    low_height: 10.
+    armor_size: large
+
+  Infantry:
+    length: 50.
+    width: 40.
+    armor_count: 4
+    high_height: 15.
+    low_height: 10.
+    armor_size: small
+
+  Sentry:
+    length: 50.
+    width: 40.
+    armor_count: 2
+    high_height: 10.
+    low_height: 0.
+    armor_size: large
+
+  Engineer:
+    length: 50.
+    width: 40.
+    armor_count: 4
+    high_height: 15.
+    low_height: 10.
+    armor_size: small
+
+
+
+
+
+
+
+
+
