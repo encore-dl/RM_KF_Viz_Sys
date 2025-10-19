@@ -1,4 +1,4 @@
-from object.real_object.Robot import Robot, RobotType
+from object.entity.Robot import Robot, RobotType
 
 
 class RobotManage:

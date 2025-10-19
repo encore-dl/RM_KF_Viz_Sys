@@ -1,16 +1,16 @@
 import time
 
-from object.abstract_object.simulator_rel.Shower import Shower
-from object.abstract_object.simulator_rel.RobotManager import RobotManage
+from simulation.visualizer import Visualizer
+from simulation.managers.robot_manager import RobotManage
 
-from object.real_object.Robot import RobotType
+from object.entity.Robot import RobotType
 
 
 class Simulator:
     def __init__(self):
         self.t_last = time.time()
 
-        self.shower = Shower()
+        self.shower = Visualizer()
         self.robot_manage = RobotManage()
 
     def run(self):

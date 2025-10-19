@@ -5,7 +5,7 @@ import random
 
 from dataclasses import dataclass
 
-from tools.math_tools import world_to_main_screen
+from utils.math_tools import world_to_main_screen
 
 
 @dataclass
@@ -24,12 +24,12 @@ SCREEN_WIDTH = 1500
 SCREEN_HEIGHT = 840
 
 WORLD_SCALE = 10
-OBSRV_NOISE = 0.05
+OBSRV_NOISE = 0.1
 
 PI = math.pi
 
 
-class Shower:
+class Visualizer:
     def __init__(self):
         self.screen_width = SCREEN_WIDTH
         self.screen_height = SCREEN_HEIGHT
@@ -47,7 +47,7 @@ class Shower:
         self.show_camera()
         self.show_info()
 
-    def show_main(self, robots, targets):
+    def show_main(self, robots, targets=None):
         for robot in robots:
             # 车，装甲板的可视化
             world_xy = robot.world_pos[:2]
@@ -71,7 +71,7 @@ class Shower:
 
                 # 画加了高斯噪声的装甲板
                 # 也就是观测数据 observe
-                armor_main_obsrv_pos = armor_main_pos + [random.gauss(0, OBSRV_NOISE)]
+                armor_main_obsrv_pos = armor_main_pos + np.array([random.gauss(0, OBSRV_NOISE), random.gauss(0, OBSRV_NOISE)])
                 pg.draw.circle(self.screen, Color.YELLOW, armor_main_obsrv_pos, 5)
 
             # if targets

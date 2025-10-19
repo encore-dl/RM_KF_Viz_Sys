@@ -1,6 +1,6 @@
 from enum import Enum
 
-from object.real_object.Robot import RobotType
+from object.entity.Robot import RobotType
 
 
 class MachineState(Enum):
@@ -11,7 +11,7 @@ class MachineState(Enum):
     switching = 5
 
 
-class StateMachine:
+class TrackStateMachine:
     def __init__(self, target):
         self.state = MachineState.lost
         self.pre_state = MachineState.lost

@@ -2,7 +2,7 @@ import numpy as np
 import yaml
 from enum import Enum
 
-from object.real_object.Armor import Armor
+from object.entity.Armor import Armor
 
 
 # 车的型号，顺便排列优先级

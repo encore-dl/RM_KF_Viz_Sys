@@ -2,22 +2,34 @@ import numpy as np
 from collections import deque
 
 
-# 默认状态: [x, vx, y, vy, z, vz, a, w, r, l, h]
+# 状态向量默认状态: [x, vx, y, vy, z, vz, a, w, r, l, h] 11维向量
 class ExtendedKalmanFilter:
-    def __init__(self, x0=None, P0=None, x_add_func=None, state_dim=11):
-        if x0 is None:
-            self.x = np.zeros(state_dim)
-        else:
+    def __init__(self, x0=None, P0=None, x_add_func=None):
+        # 从x0或P0推导状态维度
+        if x0 is not None:
+            self.state_dim = len(x0)
             self.x = x0.copy().flatten()
-
-        if P0 is None:
-            self.P = np.eye(state_dim)
+        elif P0 is not None:
+            self.state_dim = P0.shape[0]
+            self.x = np.zeros(self.state_dim)
         else:
-            self.P = P0.copy()
+            # 默认情况
+            self.state_dim = 11
+            self.x = np.zeros(self.state_dim)
 
-        self.state_dim = state_dim
-        if len(self.x) != state_dim or self.P.shape != (state_dim, state_dim):
-            raise ValueError("state vector mismatched!")
+        # 初始化协方差矩阵
+        if P0 is not None:
+            self.P = P0.copy()
+            # 验证维度一致性
+            if self.P.shape != (self.state_dim, self.state_dim):
+                raise ValueError("P0 MISMATCH x0")
+        else:
+            self.P = np.eye(self.state_dim)
+
+        # 验证x0和P0的维度一致性（如果两者都提供）
+        if x0 is not None and P0 is not None:
+            if len(x0) != P0.shape[0]:
+                raise ValueError("x0 MISMATCH P0")
 
         self.x_add_func = x_add_func if x_add_func else lambda a, b: a + b
 

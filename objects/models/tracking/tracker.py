@@ -1,6 +1,3 @@
-from object.abstract_object.process_rel.StateMachine import StateMachine
-
-
 class Tracker:
     def __init__(self):
         pass

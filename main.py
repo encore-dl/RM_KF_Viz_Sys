@@ -1,7 +1,7 @@
 import pygame as pg
 
-from object.abstract_object.Simulator import Simulator
-from object.real_object.Robot import RobotType
+from simulation.simulator import Simulator
+from object.entity.Robot import RobotType
 
 
 def main():
