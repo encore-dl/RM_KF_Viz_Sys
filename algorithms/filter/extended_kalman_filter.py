@@ -2,7 +2,6 @@ import numpy as np
 from collections import deque
 
 
-# 状态向量默认状态: [x, vx, y, vy, z, vz, a, w, r, l, h] 11维向量
 class ExtendedKalmanFilter:
     def __init__(self, x0=None, P0=None, x_add_func=None):
         # 从x0或P0推导状态维度
@@ -34,10 +33,10 @@ class ExtendedKalmanFilter:
         self.x_add_func = x_add_func if x_add_func else lambda a, b: a + b
 
         # 性能监控数据
-        self.performance_window = 50
-        self.recent_nis_failures = deque(maxlen=self.performance_window)
-        self.recent_nees_values = deque(maxlen=self.performance_window)
-        self.recent_nees_failures = deque(maxlen=self.performance_window)
+        self.window_size = 50
+        self.recent_nis_failures = deque(maxlen=self.window_size)
+        self.recent_nees_values = deque(maxlen=self.window_size)
+        self.recent_nees_failures = deque(maxlen=self.window_size)
 
         self.data = {
             "residual_yaw": 0,

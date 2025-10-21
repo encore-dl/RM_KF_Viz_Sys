@@ -1,6 +1,6 @@
 from enum import Enum
 
-from object.entity.Robot import RobotType
+from object.entity.robot import RobotType
 
 
 class MachineState(Enum):
@@ -12,7 +12,7 @@ class MachineState(Enum):
 
 
 class TrackStateMachine:
-    def __init__(self, target):
+    def __init__(self):
         self.state = MachineState.lost
         self.pre_state = MachineState.lost
 
@@ -24,9 +24,9 @@ class TrackStateMachine:
         self.normal_temp_lost_count = 15
         self.outpost_max_temp_lost_count = 75
 
-        self.target = target
+    def state_change(self, found, robot_type):
+        self.pre_state = self.state
 
-    def state_change(self, found):
         if self.state == MachineState.lost:
             if not found:
                 return
@@ -61,13 +61,16 @@ class TrackStateMachine:
             else:
                 self.temp_lost_count += 1
 
-                if self.target.name == RobotType.Outpost:
+                if robot_type == RobotType.Outpost:
                     self.max_temp_lost_count = self.outpost_max_temp_lost_count
                 else:
                     self.max_temp_lost_count = self.normal_temp_lost_count
 
                 if self.temp_lost_count > self.max_temp_lost_count:
                     self.state = MachineState.lost
+
+        return self.state
+
 
 
 

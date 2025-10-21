@@ -1,7 +1,7 @@
 import pygame as pg
 
 from simulation.simulator import Simulator
-from object.entity.Robot import RobotType
+from object.entity.robot import RobotType
 
 
 def main():
@@ -40,17 +40,19 @@ def main():
                         else:
                             continue
 
-                        simulator.robot_manage.delete_robot(num)
+                        simulator.robot_manager.delete_robot(num)
 
                     is_second_key = False
                     first_key = None
                 elif event.key == pg.K_RETURN:
-                    simulator.robot_manage.create_robot(RobotType.Hero)
+                    simulator.robot_manager.create_robot(RobotType.Hero)
                 elif event.key == pg.K_BACKSPACE:
                     is_second_key = True
                     first_key = event.key
 
         simulator.run()
+
+        simulator.motion_manager.
 
         pg.display.flip()
         clock.tick(60)

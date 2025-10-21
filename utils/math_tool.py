@@ -33,6 +33,15 @@ def world_to_main_screen(world_pos, screen_center, world_scale):
     return np.array([int(screen_x), int(screen_y)])
 
 
+def camera_to_screen(camera_screen_pos):
+    if camera_screen_pos <= 0:
+        return None
+
+    # 透视投影
+    x_norm = camera_screen_pos[1] / camera_screen_pos[0]  # y / x
+    y_norm = camera_screen_pos[2] / camera_screen_pos[0]  # z / x
+
+
 def limit_rad(angle):
     return (angle + math.pi) % (2 * math.pi) - math.pi
 

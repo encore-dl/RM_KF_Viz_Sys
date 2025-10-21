@@ -2,7 +2,7 @@ import numpy as np
 import yaml
 from enum import Enum
 
-from object.entity.Armor import Armor
+from object.entity.armor import Armor
 
 
 # 车的型号，顺便排列优先级
@@ -37,15 +37,16 @@ class Robot:
         self.armor_count = 0
         self.armor_size = ''
 
-        self.length = 0
-        self.width = 0
-        self.high_height = 0
-        self.low_height = 0
-
         self.world_pos = np.array([0., 0., 0.])
         self.world_vel = np.array([0., 0., 0.])
         self.world_rpy = np.array([0., 0., 0.])
         self.world_omg = np.array([0., 0., 0.])
+
+        self.length = 0
+        self.width = 0
+        self.high_height = 0
+        self.low_height = 0
+        self.radius = 0
 
         self.load_config()
 
@@ -61,39 +62,43 @@ class Robot:
         self.width = data['Robot'][robot_name_str]['width']
         self.high_height = data['Robot'][robot_name_str]['high_height']
         self.low_height = data['Robot'][robot_name_str]['low_height']
+        self.radius = self.length / 2
 
-        for i in range(self.armor_count):  # 车的规格设定为长低短高，按 装甲板半径从长到短的顺序，对装甲板进行逆时针编号
+        for i in range(self.armor_count):  # 车的规格设定为长低短高，按 装甲板半径从长到短的顺序，对装甲板进行逆时针编号，最x正的开始
             armor = Armor(i)
 
             armor.armor_size = self.armor_size
 
+            # 世界坐标系：x 右 y 前 z 上
+            # 逆时针为：x正 y正 x负 y负
+            # 但是在图像上是 顺时针
             if self.armor_count == 4:
                 if i % 2 == 0:
-                    armor.world_pos[0] = self.world_pos[0] - self.length / 2
+                    if i == 0:
+                        armor.world_pos[0] = self.world_pos[0] + self.length / 2
+                    elif i == 2:
+                        armor.world_pos[0] = self.world_pos[0] - self.length / 2
                     armor.world_pos[1] = self.world_pos[1]
                     armor.world_pos[2] = self.low_height
                     armor.radius = self.length / 2
                 else:
                     armor.world_pos[0] = self.world_pos[0]
-                    armor.world_pos[1] = self.world_pos[1] + self.width / 2
+                    if i == 1:
+                        armor.world_pos[1] = self.world_pos[1] + self.width / 2
+                    elif i == 3:
+                        armor.world_pos[1] = self.world_pos[1] - self.width / 2
                     armor.world_pos[2] = self.high_height
                     armor.radius = self.width / 2
             elif self.armor_count == 2:  # Sentry是双装甲板，设置为low height，id为 0，1
-                armor.world_pos[0] = self.world_pos[0] - self.length / 2
+                if i == 0:
+                    armor.world_pos[0] = self.world_pos[0] + self.length / 2
+                elif i == 1:
+                    armor.world_pos[0] = self.world_pos[0] - self.length / 2
                 armor.world_pos[1] = self.world_pos[1]
                 armor.world_pos[2] = self.low_height
                 armor.radius = self.length / 2
 
             self.armors.append(armor)
-
-
-
-
-
-# hero = Robot(RobotType.Sentry)
-# hero.initialization()
-# armor = hero.armors[1]
-# print(armor.armor_size, armor.armor_id, armor.pos)
 
 
 
