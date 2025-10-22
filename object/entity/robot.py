@@ -1,12 +1,13 @@
 import numpy as np
+import math
 import yaml
-from enum import Enum
+from enum import IntEnum
 
 from object.entity.armor import Armor
 
 
 # 车的型号，顺便排列优先级
-class RobotType(Enum):
+class RobotType(IntEnum):
     Hero = 1
     Sentry = 2
     Infantry = 3
@@ -68,6 +69,8 @@ class Robot:
             armor = Armor(i)
 
             armor.armor_size = self.armor_size
+            armor.robot_type = self.robot_type
+            armor.priority = self.priority
 
             # 世界坐标系：x 右 y 前 z 上
             # 逆时针为：x正 y正 x负 y负
@@ -76,8 +79,10 @@ class Robot:
                 if i % 2 == 0:
                     if i == 0:
                         armor.world_pos[0] = self.world_pos[0] + self.length / 2
+                        armor.world_rpy[0] = 0.
                     elif i == 2:
                         armor.world_pos[0] = self.world_pos[0] - self.length / 2
+                        armor.world_rpy[0] = -math.pi
                     armor.world_pos[1] = self.world_pos[1]
                     armor.world_pos[2] = self.low_height
                     armor.radius = self.length / 2
@@ -85,8 +90,10 @@ class Robot:
                     armor.world_pos[0] = self.world_pos[0]
                     if i == 1:
                         armor.world_pos[1] = self.world_pos[1] + self.width / 2
+                        armor.world_rpy[0] = math.pi / 2
                     elif i == 3:
                         armor.world_pos[1] = self.world_pos[1] - self.width / 2
+                        armor.world_rpy[0] = -math.pi / 2
                     armor.world_pos[2] = self.high_height
                     armor.radius = self.width / 2
             elif self.armor_count == 2:  # Sentry是双装甲板，设置为low height，id为 0，1

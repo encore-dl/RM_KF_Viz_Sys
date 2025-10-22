@@ -52,7 +52,7 @@ def main():
 
         simulator.run()
 
-        simulator.motion_manager.
+        simulator.motion_manager.set_auto_step(auto_pos_step=[1., 0., 0.])
 
         pg.display.flip()
         clock.tick(60)

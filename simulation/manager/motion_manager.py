@@ -19,7 +19,7 @@ class MotionManager:
         self.motion.change_entity(self._entity)
         do_motion(self.auto_pos_step, self.auto_rpy_step, t, dt)
 
-    def set_auto_step(self, auto_pos_step, auto_rpy_step):
+    def set_auto_step(self, auto_pos_step=None, auto_rpy_step=None):
         self.auto_pos_step = auto_pos_step
         self.auto_rpy_step = auto_rpy_step
 

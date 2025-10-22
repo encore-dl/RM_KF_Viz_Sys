@@ -37,12 +37,13 @@ class Motion:
         pass
 
     def camera_auto_motion(self, auto_pos_step=None, auto_rpy_step=None, t=None, dt=None):
-        self._entity.world_pos[0] += auto_pos_step[0] * dt
-        self._entity.world_pos[1] += auto_pos_step[1] * dt
-        self._entity.world_pos[2] += auto_pos_step[2] * dt
-
-        self._entity.world_rpy[2] += auto_rpy_step[2] * dt
-        self._entity.world_rpy[1] += auto_rpy_step[1] * dt
+        if auto_pos_step is not None:
+            self._entity.world_pos[0] = self._entity.world_pos[0] + auto_pos_step[0] * dt
+            self._entity.world_pos[1] = self._entity.world_pos[1] + auto_pos_step[1] * dt
+            self._entity.world_pos[2] = self._entity.world_pos[2] + auto_pos_step[2] * dt
+        if auto_rpy_step is not None:
+            self._entity.world_rpy[2] += auto_rpy_step[2] * dt
+            self._entity.world_rpy[1] += auto_rpy_step[1] * dt
 
         self._entity.world_rpy[2] = limit_rad(self._entity.world_rpy[2])
         self._entity.world_rpy[1] = np.clip(self._entity.world_rpy[1], -math.pi / 2, math.pi / 2)

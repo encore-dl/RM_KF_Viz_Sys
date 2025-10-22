@@ -13,8 +13,8 @@ class CameraManager:
 
         self.camera = Camera(
             (self.camera_screen_width, self.camera_screen_height),
-            np.array([0, 0, 0]),
+            np.array([0., 0., 0.]),
             60,
             10,
-            np.array([0, 0, 0])
+            np.array([0., 0., 0.])
         )

@@ -27,16 +27,19 @@ class Simulator:
         self.visualizer.show(self.robot_manager.robots)
 
     def update(self, robots):
+        # 时间在此管理
         t_cur = time.time()
         dt = t_cur - self.t_last
         self.t_last = t_cur
 
+        # 更新相机运动
         self.motion_manager.change_motion(
             entity=self.camera_manager.camera,
             do_motion=self.motion_manager.motion.camera_auto_motion,
             dt=dt
         )
-        if (self.camera_manager.camera.auto_aiming and
+        print(self.camera_manager.camera.world_pos)
+        if (self.camera_manager.camera.auto_aiming and  # 相机自瞄
                 len(self.robot_manager.robots) != 0):
             self.camera_manager.camera.look_at(self.robot_manager.selected_robot)
 
@@ -44,9 +47,10 @@ class Simulator:
         if len(self.robot_manager.robots) != 0:
             self.motion_manager.change_motion(self.robot_manager.selected_robot, self.motion_manager.motion.hrz_osc, t_cur)
 
-        observed_robots = self.robot_manager.generate_observed_robots()
-
-        targets = self.tracker.track(observed_robots[0], dt, self.visualizer.camera_screen_center)
+        # 生产被观测的数据，实际上只有被观测的装甲板，套robot的皮
+        observed_armors = self.robot_manager.get_observed_armors()
+        if len(observed_armors) != 0:
+            targets = self.tracker.track(observed_armors, dt, self.visualizer.camera_screen_center)
 
 
 

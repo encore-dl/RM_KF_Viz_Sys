@@ -28,22 +28,17 @@ class RobotManage:
     def get_robots_count(self):
         return len(self.robots)
 
-    def generate_observed_robots(self):
-        observed_robots = []
+    def get_observed_armors(self):
+        observed_armors = []
 
         noise = np.random.normal(0, self.noise_sigma, 3)
         for robot in self.robots:
-            observed_robot = robot
             for i, armor in enumerate(robot.armors):
                 observed_armor = armor
                 observed_armor.world_pos += noise
-                observed_robot.armors[i] = observed_armor
+                observed_armors.append(observed_armor)
 
-            observed_robot.world_pos += noise
-
-            observed_robots.append(observed_robot)
-
-        return observed_robots
+        return observed_armors
 
     def update_robots(self):
         pass

@@ -42,7 +42,7 @@ class TongJiModel:
         F[4, 5] = dt  # z = z + vz*dt
         F[6, 7] = dt  # a = a + w*dt
 
-        v1, v2 = (10, 0.1) if self.robot_type == RobotType.Outpost else (100, 400)
+        v1, v2 = (10, 0.1) if self.armor.robot_type == RobotType.Outpost else (100, 400)
         p_noise = dt ** 4 / 4
         pv_noise = dt ** 3 / 2
         v_noise = dt ** 2

@@ -57,16 +57,16 @@ class Visualizer:
         self.show_camera()
         self.show_info()
 
-    def show_main(self, robots, targets=None):
+    def show_main(self, robots, tracked_robot=None):
         for robot in robots:
             # 车，装甲板的可视化
             world_xy = robot.world_pos[:2]
             main_xy = world_to_main_screen(world_pos=world_xy, screen_center=self.main_screen_center, world_scale=self.world_scale)
             pg.draw.circle(self.screen, Color.BLUE, main_xy, 6)
 
+            # 画真实装甲板
+            # 也就是真实数据 true data
             for armor in robot.armors:
-                # 画真实的装甲板
-                # 也就是真实数据 true
                 armor_main_angle = robot.world_rpy[0] + armor.armor_id * 2*PI / robot.armor_count
                 armor_main_screen_pos = world_to_main_screen(
                     [
@@ -84,7 +84,7 @@ class Visualizer:
                 armor_main_obsrv_pos = armor_main_screen_pos + np.array([random.gauss(0, OBSRV_NOISE), random.gauss(0, OBSRV_NOISE)])
                 pg.draw.circle(self.screen, Color.YELLOW, armor_main_obsrv_pos, 5)
 
-            # if targets
+            # if tracked_robot
 
     def show_camera(self):
         pass
