@@ -4,6 +4,7 @@ import yaml
 from enum import IntEnum
 
 from object.entity.armor import Armor
+from utils.math_tool import pos_to_tpd
 
 
 # 车的型号，顺便排列优先级
@@ -33,15 +34,16 @@ class Robot:
     def __init__(self, robot_type):
         self.armors = []
 
+        self.world_pos = np.array([0., 0., 0.])
+        self.world_vel = np.array([0., 0., 0.])
+        self.world_tpd = np.array([0., 0., 0.])
+        self.world_rpy = np.array([0., 0., 0.])
+        self.world_omg = np.array([0., 0., 0.])
+
         self.robot_type = robot_type
         self.priority = robot_type  # 车的型号决定了打击的优先级
         self.armor_count = 0
         self.armor_size = ''
-
-        self.world_pos = np.array([0., 0., 0.])
-        self.world_vel = np.array([0., 0., 0.])
-        self.world_rpy = np.array([0., 0., 0.])
-        self.world_omg = np.array([0., 0., 0.])
 
         self.length = 0
         self.width = 0
@@ -104,6 +106,8 @@ class Robot:
                 armor.world_pos[1] = self.world_pos[1]
                 armor.world_pos[2] = self.low_height
                 armor.radius = self.length / 2
+
+            armor.world_tpd = pos_to_tpd(armor.world_pos)
 
             self.armors.append(armor)
 

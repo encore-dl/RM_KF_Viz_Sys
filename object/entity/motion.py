@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from utils.math_tool import limit_rad
+from utils.math_tool import limit_rad, pos_to_tpd
 
 
 class Motion:
@@ -23,6 +23,9 @@ class Motion:
 
         self._entity.world_pos[0] = x
         self._entity.world_vel[0] = vx
+        for armor in self._entity.armors:
+            armor.world_pos[0] = x
+            armor.world_vel[0] = vx
 
     def go_up(self, auto_pos_step=None, auto_rpy_step=None, t=None, dt=None):
         self._entity.world_pos += self._entity.entities.world_vel * dt
@@ -36,6 +39,22 @@ class Motion:
     def go_right(self, auto_pos_step=None, auto_rpy_step=None, t=None, dt=None):
         pass
 
+    def robot_auto_motion(self, auto_pos_step=None, auto_rpy_step=None, t=None, dt=None):
+        if auto_pos_step is not None:
+            self._entity.world_pos[0] += auto_pos_step[0] * dt
+            self._entity.world_pos[1] += auto_pos_step[1] * dt
+            self._entity.world_pos[2] += auto_pos_step[2] * dt
+            for armor in self._entity.armors:
+                armor.world_pos[0] += auto_pos_step[0] * dt
+                armor.world_pos[1] += auto_pos_step[1] * dt
+                armor.world_pos[2] += auto_pos_step[2] * dt
+        if auto_rpy_step is not None:
+            self._entity.world_rpy[2] += auto_rpy_step[2] * dt
+            self._entity.world_rpy[1] += auto_rpy_step[1] * dt
+            for armor in self._entity.armors:
+                armor.world_rpy[2] += auto_rpy_step[2] * dt
+                armor.world_rpy[1] += auto_rpy_step[1] * dt
+
     def camera_auto_motion(self, auto_pos_step=None, auto_rpy_step=None, t=None, dt=None):
         if auto_pos_step is not None:
             self._entity.world_pos[0] = self._entity.world_pos[0] + auto_pos_step[0] * dt
@@ -47,6 +66,7 @@ class Motion:
 
         self._entity.world_rpy[2] = limit_rad(self._entity.world_rpy[2])
         self._entity.world_rpy[1] = np.clip(self._entity.world_rpy[1], -math.pi / 2, math.pi / 2)
+        self._entity.world_tpd = pos_to_tpd(self._entity.world_pos)
 
     def auto_motion(self):
         pass

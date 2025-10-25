@@ -1,7 +1,6 @@
 import numpy as np
 import pygame as pg
 import math
-import random
 
 from dataclasses import dataclass
 
@@ -21,7 +20,6 @@ class Color:
 
 
 WORLD_SCALE = 2
-OBSRV_NOISE = 0.1
 
 PI = math.pi
 
@@ -50,41 +48,66 @@ class Visualizer:
 
         self.world_scale = WORLD_SCALE
 
-    def show(self, robots):
+    def show(self, true_robots, obsrv_armors, tracker):
         self.screen.fill(Color.BLACK)
 
-        self.show_main(robots)
+        self.show_main(true_robots, obsrv_armors, tracker)
         self.show_camera()
         self.show_info()
 
-    def show_main(self, robots, tracked_robot=None):
-        for robot in robots:
+    def show_main(self, true_robots, obsrv_armors, tracker):
+        # 画真实装甲板
+        # 也就是真实数据 true data
+        for robot in true_robots:
             # 车，装甲板的可视化
-            world_xy = robot.world_pos[:2]
-            main_xy = world_to_main_screen(world_pos=world_xy, screen_center=self.main_screen_center, world_scale=self.world_scale)
-            pg.draw.circle(self.screen, Color.BLUE, main_xy, 6)
+            robot_main_screen_pos = world_to_main_screen(
+                world_pos=robot.world_pos,
+                screen_center=self.main_screen_center,
+                world_scale=self.world_scale
+            )
+            # print(robot_main_screen_pos)
+            pg.draw.circle(self.screen, Color.BLUE, robot_main_screen_pos, 6)
 
-            # 画真实装甲板
-            # 也就是真实数据 true data
             for armor in robot.armors:
-                armor_main_angle = robot.world_rpy[0] + armor.armor_id * 2*PI / robot.armor_count
                 armor_main_screen_pos = world_to_main_screen(
-                    [
-                        robot.world_pos[0] - armor.radius * math.cos(armor_main_angle),
-                        robot.world_pos[1] - armor.radius * math.sin(armor_main_angle)  # y轴本就是向下的
-                    ],
+                    armor.world_pos,
                     self.main_screen_center,
                     self.world_scale
                 )
-
+                print(armor_main_screen_pos)
                 pg.draw.circle(self.screen, Color.GREEN, armor_main_screen_pos, 4)
 
-                # 画加了高斯噪声的装甲板
-                # 也就是观测数据 observe
-                armor_main_obsrv_pos = armor_main_screen_pos + np.array([random.gauss(0, OBSRV_NOISE), random.gauss(0, OBSRV_NOISE)])
-                pg.draw.circle(self.screen, Color.YELLOW, armor_main_obsrv_pos, 5)
+        # 画 加了高斯噪声的装甲板
+        # 也就是观测数据 obsrv
+        for obsrv_armor in obsrv_armors:
+            obsrv_armor_main_screen_pos = world_to_main_screen(
+                obsrv_armor.world_pos,
+                self.main_screen_center,
+                self.world_scale
+            )
+            pg.draw.circle(self.screen, Color.YELLOW, obsrv_armor_main_screen_pos, 5)
 
-            # if tracked_robot
+        if tracker.is_tracked:
+            model = tracker.tongji_model
+
+            est_center_main_screen_pos = world_to_main_screen(
+                [
+                    model.get_ekf().x[0],
+                    model.get_ekf().x[2]
+                ],
+                self.main_screen_center,
+                self.world_scale
+            )
+            pg.draw.circle(self.screen, Color.RED, est_center_main_screen_pos, 6)
+            
+            for armor_id in range(tracker.tracked_robot.armor_count):
+                est_armor_pos = model.get_est_armor_pos(model.get_ekf().x, armor_id)
+                est_armor_main_screen_pos = world_to_main_screen(
+                    est_armor_pos,
+                    self.main_screen_center,
+                    self.world_scale
+                )
+                pg.draw.circle(self.screen, Color.PURPLE, est_armor_main_screen_pos, 4)
 
     def show_camera(self):
         pass

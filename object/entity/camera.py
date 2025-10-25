@@ -1,18 +1,19 @@
 import numpy as np
 import math
 
-from utils.math_tool import get_euler_rotate_matrix
+from utils.math_tool import get_euler_rotate_matrix, pos_to_tpd
 
 
 class Camera:
     def __init__(self, resolution, world_pos=np.array([0., 0., 0.]), fov=60, max_range=10, orient=np.array([0., 0., 0.])):
         self.world_pos = world_pos
         self.world_vel = np.array([0., 0., 0.])
+        self.world_tpd = pos_to_tpd(world_pos)
         self.world_rpy = orient
+        self.world_omg = np.array([0., 0., 0.])
 
         self.fov = math.radians(fov)  # field of view 视场角
         self.max_range = max_range  # 相机最远识别范围/距离
-
         self.focal_len = 800  # 焦距 单位：像素
         self.resolution = resolution
 

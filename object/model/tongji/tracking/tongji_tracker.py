@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 
 from object.model.tongji.tracking.track_state_machine import TrackStateMachine
@@ -16,13 +14,14 @@ class TongJiTracker:
         self.state = MachineState.lost
 
         self.tracked_robot = None
+        self.is_tracked = False
 
     def init_model(self, obsrv_armor=None):
         if obsrv_armor is None:
             return False
 
-        self.tongji_model.init_model(obsrv_armor)
         self.tracked_robot = Robot(obsrv_armor.robot_type)
+        self.tongji_model.init_model(obsrv_armor, self.tracked_robot.armor_count)
 
         return True
 
@@ -30,12 +29,13 @@ class TongJiTracker:
         if not self.tongji_model:
             return False
 
+        # kalman预测
         self.tongji_model.predict(dt)
 
+        # 统计和 tracked robot 匹配的 obsrv 装甲板
         found_count = 0
         min_x = float('inf')
         for armor in obsrv_armors:
-            # if (obsrv_robot.robot_type != self.tongji_model.):
             if (armor.robot_type != self.tracked_robot.robot_type or
                     armor.armor_size != self.tracked_robot.armor_size):
                 continue
@@ -46,6 +46,7 @@ class TongJiTracker:
         if found_count == 0:
             return False
 
+        # kalman更新
         for armor in obsrv_armors:
             if (armor.robot_type != self.tracked_robot.robot_type or
                     armor.armor_size != self.tracked_robot.armor_size):
@@ -58,38 +59,41 @@ class TongJiTracker:
 
     def track(self, obsrv_armors, dt, camera_screen_center):
         if obsrv_armors is not None:
+            # 图像中心排序
             obsrv_armors.sort(key=lambda a: np.linalg.norm(
                 np.array([a.world_pos[0] * 1000, a.world_pos[1] * 1000]) - camera_screen_center
             ))
-
+            # 击打优先级排序
             obsrv_armors.sort(key=lambda a: a.priority)
 
+        # 目标的跟踪过程
         found = False
         if self.track_state_machine.state == MachineState.lost:
-            found = self.init_model(obsrv_armors[0])
+            found = self.init_model(obsrv_armors[0])  # 用 obsrv_armors 的第一个来初始化
         else:
             found = self.run_model(obsrv_armors, dt)
 
         # 更新状态机
         self.state = self.track_state_machine.state_change(found, self.tracked_robot.robot_type)
 
+        # 已经发散
+        if self.state == MachineState.lost:
+            self.is_tracked = False
+        
         # 检测是否发散
         if self.state != MachineState.lost and self.tongji_model.diverged():
             print("model diverged!")
             self.state = MachineState.lost
-            return []
+            self.is_tracked = False
 
         # 检查收敛状况
-        if (self.state != MachineState.lost and  #
+        if (self.state != MachineState.lost and
            self.tongji_model.get_ekf().data["recent_nis_failures"] >= 0.4 * self.tongji_model.get_ekf().window_size):
             print("bad convergence!")
             self.state = MachineState.lost
-            return []
+            self.is_tracked = False
 
-        if self.state == MachineState.lost:
-            return []
-
-        return  # 输出啥呢？
+        self.is_tracked = True
 
 
 

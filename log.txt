@@ -2,9 +2,9 @@ ekf done -
 armor done
 camera !
 robot done
-tracker !
+tracker done
 state_machine done
-model !
+model done
 camera_manager done
 robot_manager !
 simulator !

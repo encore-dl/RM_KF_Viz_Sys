@@ -6,6 +6,7 @@ from object.entity.robot import (Robot)
 class RobotManage:
     def __init__(self, camera=None):
         self.robots = []
+        self.obsrv_armors = []
         self.selected_robot = None
         self.camera = camera
 
@@ -28,17 +29,15 @@ class RobotManage:
     def get_robots_count(self):
         return len(self.robots)
 
-    def get_observed_armors(self):
-        observed_armors = []
+    def get_obsrv_armors(self):  # 职能是给 robot的armor属性的位置属性 增添噪声，并输出该数据
+        self.obsrv_armors = []
 
         noise = np.random.normal(0, self.noise_sigma, 3)
         for robot in self.robots:
             for i, armor in enumerate(robot.armors):
-                observed_armor = armor
-                observed_armor.world_pos += noise
-                observed_armors.append(observed_armor)
-
-        return observed_armors
+                obsrv_armor = armor
+                obsrv_armor.world_pos += noise
+                self.obsrv_armors.append(obsrv_armor)
 
     def update_robots(self):
         pass
