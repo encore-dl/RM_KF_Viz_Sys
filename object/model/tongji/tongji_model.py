@@ -80,39 +80,38 @@ class TongJiModel:
 
     def get_est_armor_pos(self, x_, armor_id):
         est_armor_agl = limit_rad(x_[6] + armor_id * 2 * math.pi / self.armor_count)
-        is_change_l_h = (self.armor_count == 4) and (armor_id == 0 or armor_id == 2)
-        r = x_[8] + x_[9] if is_change_l_h else x_[8]
+        is_change_l_h = (self.armor_count == 4) and (armor_id % 2 == 1)
 
-        return np.array([  # est -> estimate
-            x_[0] - r * math.cos(est_armor_agl),
-            x_[2] - r * math.sin(est_armor_agl),
-            x_[4] + x_[10] if is_change_l_h else x_[4]
-        ])
+        r = x_[8] + x_[9] if is_change_l_h else x_[8]
+        z_offs = x_[10] if is_change_l_h else 0.
+
+        armor_x = x_[0] + r * math.cos(est_armor_agl)
+        armor_y = x_[2] + r * math.sin(est_armor_agl)
+        armor_z = x_[4] + z_offs
+
+        return np.array([armor_x, armor_y, armor_z])
 
     def update(self, armor):
         x = self._ekf.x
         est_armor_agl = limit_rad(x[6] + armor.armor_id * 2 * math.pi / self.armor_count)
-        is_change_l_h = (self.armor_count == 4) and (armor.armor_id == 0 or armor.armor_id == 2)
+        is_change_l_h = (self.armor_count == 4) and (armor.armor_id % 2 == 1)
 
         r = x[8] + x[9] if is_change_l_h else x[8]
+        z_offs = x[10] if is_change_l_h else 0.
 
-        dx_da = r * math.sin(est_armor_agl)  # x 对 agl 求偏导
-        dy_da = -r * math.cos(est_armor_agl)
+        dx_da = -r * math.sin(est_armor_agl)  # x 对 agl 求偏导
+        dy_da = r * math.cos(est_armor_agl)
 
-        dx_dr = -math.cos(est_armor_agl)
-        dy_dr = -math.sin(est_armor_agl)
+        dx_dr = math.cos(est_armor_agl)
+        dy_dr = math.sin(est_armor_agl)
 
-        dx_dl = -math.cos(est_armor_agl) if is_change_l_h else 0.
-        dy_dl = -math.sin(est_armor_agl) if is_change_l_h else 0.
+        dx_dl = math.cos(est_armor_agl) if is_change_l_h else 0.
+        dy_dl = math.sin(est_armor_agl) if is_change_l_h else 0.
 
         dz_dh = 1. if is_change_l_h else 0.
 
         def get_est_armor_pos(x_):
-            return np.array([  # est -> estimate
-                x_[0] - r * math.cos(est_armor_agl),
-                x_[2] - r * math.sin(est_armor_agl),
-                x_[4] + x_[10] if is_change_l_h else x_[4]
-            ])
+            return self.get_est_armor_pos(x_, armor.armor_id)
 
         est_armor_pos = get_est_armor_pos(x)
         est_armor_tpd = pos_to_tpd_jacob(est_armor_pos)

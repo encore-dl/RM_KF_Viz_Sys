@@ -20,6 +20,8 @@ class TongJiTracker:
         if obsrv_armor is None:
             return False
 
+        print(obsrv_armor.world_rpy)
+
         self.tracked_robot = Robot(obsrv_armor.robot_type)
         self.tongji_model.init_model(obsrv_armor, self.tracked_robot.armor_count)
 
@@ -47,13 +49,17 @@ class TongJiTracker:
             return False
 
         # kalman更新
+        n = 1
         for armor in obsrv_armors:
             if (armor.robot_type != self.tracked_robot.robot_type or
                     armor.armor_size != self.tracked_robot.armor_size):
                 continue
 
             self.tongji_model.update(armor)  # 本来是有个solve_pnp的，但是这里没，所以直接提供3d值
-            break  # 暂定 先只更新一个
+
+            n -= 1
+            if n == 0:
+                break
 
         return True
 

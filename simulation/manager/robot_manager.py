@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from object.entity.robot import (Robot)
 
@@ -32,16 +33,12 @@ class RobotManage:
     def get_obsrv_armors(self):  # 职能是给 robot的armor属性的位置属性 增添噪声，并输出该数据
         self.obsrv_armors = []
 
-        noise = np.random.normal(0, self.noise_sigma, 3)
         for robot in self.robots:
             for i, armor in enumerate(robot.armors):
-                obsrv_armor = armor
+                noise = np.random.normal(0, self.noise_sigma, 3)
+                obsrv_armor = copy.deepcopy(armor)
                 obsrv_armor.world_pos += noise
                 self.obsrv_armors.append(obsrv_armor)
-
-    def update_robots(self):
-        pass
-
 
 
 

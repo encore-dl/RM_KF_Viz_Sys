@@ -36,31 +36,34 @@ class Simulator:
 
         # 被选中的实体进行运动更新
         if self._selected_entity is not None:
-            self.motion_manager.change_motion(
+            self.motion_manager.set_motion(
                 entity=self._selected_entity,
-                do_motion=self.motion_manager.motion.robot_auto_motion,
-                dt=dt
+                motion_func=self.motion_manager.motion.go_right
             )
 
-        # 更新相机 camera 运动
-        self.motion_manager.change_motion(
+        # 暂定 更新相机 camera 运动
+        self.motion_manager.set_motion(
             entity=self.camera_manager.camera,
-            do_motion=self.motion_manager.motion.camera_auto_motion,
-            dt=dt
+            motion_func=self.motion_manager.motion.go_right
         )
         # 是否开启相机自瞄
         if (self.camera_manager.camera.auto_aiming and
                 len(self.robot_manager.robots) != 0):
             self.camera_manager.camera.look_at(self.robot_manager.selected_robot)
 
-        # 更新robot的运动
+        # 暂定 更新robot的运动
         if len(self.robot_manager.robots) != 0:
-            self.motion_manager.change_motion(self.robot_manager.selected_robot, self.motion_manager.motion.hrz_osc, t_cur)
+            self.motion_manager.set_motion(
+                entity=self.robot_manager.selected_robot,
+                motion_func=self.motion_manager.motion.rotation
+            )
+
+        self.motion_manager.update(dt, t_cur)
 
         # 生产被观测的数据，实际上只有被观测的装甲板，套robot的皮
         self.robot_manager.get_obsrv_armors()
         if len(self.robot_manager.obsrv_armors) != 0:
-            tracked_entities = self.tracker.track(self.robot_manager.obsrv_armors, dt, self.visualizer.camera_screen_center)
+            self.tracker.track(self.robot_manager.obsrv_armors, dt, self.visualizer.camera_screen_center)
     
     def select_entity(self, selected_type, entity_number=None):
         if selected_type == 'robot':

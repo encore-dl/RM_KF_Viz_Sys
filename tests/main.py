@@ -57,7 +57,7 @@ def main():
                     simulator.select_entity('robot', 0)
                 elif event.key == pg.K_2:  # 2 为 camera
                     simulator.select_entity('camera')
-                elif event.key == pg.K_r:  # r -> robot
+                elif event.key == pg.K_RETURN:  # 回车 生成robot
                     simulator.robot_manager.create_robot(RobotType.Hero)
                 elif event.key == pg.K_BACKSPACE:  # 删除
                     is_second_key = True

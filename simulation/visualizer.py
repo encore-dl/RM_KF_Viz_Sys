@@ -65,7 +65,6 @@ class Visualizer:
                 screen_center=self.main_screen_center,
                 world_scale=self.world_scale
             )
-            # print(robot_main_screen_pos)
             pg.draw.circle(self.screen, Color.BLUE, robot_main_screen_pos, 6)
 
             for armor in robot.armors:
@@ -74,8 +73,7 @@ class Visualizer:
                     self.main_screen_center,
                     self.world_scale
                 )
-                print(armor_main_screen_pos)
-                pg.draw.circle(self.screen, Color.GREEN, armor_main_screen_pos, 4)
+                pg.draw.circle(self.screen, Color.WHITE, armor_main_screen_pos, 4)
 
         # 画 加了高斯噪声的装甲板
         # 也就是观测数据 obsrv
