@@ -32,8 +32,12 @@ class MotionManager:
             }
 
     def set_motion(self, entity, motion_func: Callable):
+        if entity is None:
+            return
         self.entity_register[entity] = motion_func
-        self._record_init_state(entity)
+        if (entity not in self.init_state) or \
+           (entity in self.init_state and motion_func != self.entity_register[entity]):
+            self._record_init_state(entity)
 
     def update(self, dt, t):
         for entity, motion_func in self.entity_register.items():

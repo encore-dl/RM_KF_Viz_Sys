@@ -48,14 +48,14 @@ class Visualizer:
 
         self.world_scale = WORLD_SCALE
 
-    def show(self, true_robots, obsrv_armors, tracker):
+    def show(self, true_robots, obsrv_armors, tracker, camera):
         self.screen.fill(Color.BLACK)
 
-        self.show_main(true_robots, obsrv_armors, tracker)
+        self.show_main(true_robots, obsrv_armors, tracker, camera)
         self.show_camera()
         self.show_info()
 
-    def show_main(self, true_robots, obsrv_armors, tracker):
+    def show_main(self, true_robots, obsrv_armors, tracker, camera):
         # 画真实装甲板
         # 也就是真实数据 true data
         for robot in true_robots:
@@ -85,6 +85,8 @@ class Visualizer:
             )
             pg.draw.circle(self.screen, Color.YELLOW, obsrv_armor_main_screen_pos, 5)
 
+        # 画 模型导出的数据
+        # 也就是 估计数据 est
         if tracker.is_tracked:
             model = tracker.tongji_model
 
@@ -106,6 +108,68 @@ class Visualizer:
                     self.world_scale
                 )
                 pg.draw.circle(self.screen, Color.PURPLE, est_armor_main_screen_pos, 4)
+
+        # 绘制相机在 main screen 上的位置
+        camera_main_screen_pos = world_to_main_screen(
+            camera.world_pos,
+            self.main_screen_center,
+            self.world_scale
+        )
+        pg.draw.circle(self.screen, Color.CYAN, camera_main_screen_pos, 8)
+
+        # 绘制扇形视线
+        forward_vec = camera.get_forward_vec()
+        forward_end = camera.world_pos + forward_vec * 30
+        forward_main_screen_pos = world_to_main_screen(
+            forward_end,
+            self.main_screen_center,
+            self.world_scale
+        )
+        pg.draw.line(self.screen, Color.CYAN, camera_main_screen_pos, forward_main_screen_pos, 3)
+
+        # 绘制视野的扇形区域
+        fov = camera.fov
+        max_range = camera.max_range
+        forward_yaw = math.atan2(forward_vec[1], forward_vec[0])
+
+        fan_seg_count = 20  # 扇形绘制的平滑程度
+        fan_vertexes = [camera_main_screen_pos]
+
+        # 寻找扇缘的平滑度分隔点
+        for i in range(fan_seg_count + 1):
+            fan_seg_agl = forward_yaw - fov/2 + ((fov / fan_seg_count) * i)
+
+            fan_vertex_world_pos = camera.world_pos.copy()
+            fan_vertex_world_pos[0] += math.cos(fan_seg_agl) * max_range
+            fan_vertex_world_pos[1] += math.sin(fan_seg_agl) * max_range
+
+            fan_vertex_main_screen_pos = world_to_main_screen(
+                fan_vertex_world_pos,
+                self.main_screen_center,
+                self.world_scale
+            )
+            fan_vertexes.append(fan_vertex_main_screen_pos)
+
+        if len(fan_vertexes) >= 3:
+            # 绘制扇形
+            transparent_surface = pg.Surface(
+                (self.main_screen_width, self.main_screen_height),
+                pg.SRCALPHA
+            )
+            pg.draw.polygon(transparent_surface, (0, 255, 255, 30), fan_vertexes)
+            self.screen.blit(transparent_surface, (0, 0))
+            pg.draw.lines(self.screen, Color.CYAN, False, fan_vertexes[1:], 2)
+
+            # 绘制扇形对称线
+            fan_mid_world_pos = camera.world_pos.copy()
+            fan_mid_world_pos[0] += math.cos(forward_yaw) * max_range
+            fan_mid_world_pos[1] += math.sin(forward_yaw) * max_range
+            fan_mid_main_screen_pos = world_to_main_screen(
+                fan_mid_world_pos,
+                self.main_screen_center,
+                self.world_scale
+            )
+            pg.draw.line(self.screen, Color.CYAN, camera_main_screen_pos, fan_mid_main_screen_pos, 1)
 
     def show_camera(self):
         pass

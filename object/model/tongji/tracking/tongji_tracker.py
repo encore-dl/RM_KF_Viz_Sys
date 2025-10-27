@@ -49,7 +49,7 @@ class TongJiTracker:
             return False
 
         # kalman更新
-        n = 1
+        n = 4
         for armor in obsrv_armors:
             if (armor.robot_type != self.tracked_robot.robot_type or
                     armor.armor_size != self.tracked_robot.armor_size):

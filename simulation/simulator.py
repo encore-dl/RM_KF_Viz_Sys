@@ -22,11 +22,16 @@ class Simulator:
         self.motion_manager = MotionManager()
         self.tracker = TongJiTracker()  # 暂时使用第一个robot
         
-        self._selected_entity = None
+        self.selected_entity = None
 
     def run(self):
         self.update()
-        self.visualizer.show(self.robot_manager.robots, self.robot_manager.obsrv_armors, self.tracker)
+        self.visualizer.show(
+            self.robot_manager.robots,
+            self.robot_manager.obsrv_armors,
+            self.tracker,
+            self.camera_manager.camera
+        )
 
     def update(self):
         # 时间在此管理
@@ -34,29 +39,10 @@ class Simulator:
         dt = t_cur - self.t_last
         self.t_last = t_cur
 
-        # 被选中的实体进行运动更新
-        if self._selected_entity is not None:
-            self.motion_manager.set_motion(
-                entity=self._selected_entity,
-                motion_func=self.motion_manager.motion.go_right
-            )
-
-        # 暂定 更新相机 camera 运动
-        self.motion_manager.set_motion(
-            entity=self.camera_manager.camera,
-            motion_func=self.motion_manager.motion.go_right
-        )
-        # 是否开启相机自瞄
+        # 相机自瞄
         if (self.camera_manager.camera.auto_aiming and
                 len(self.robot_manager.robots) != 0):
-            self.camera_manager.camera.look_at(self.robot_manager.selected_robot)
-
-        # 暂定 更新robot的运动
-        if len(self.robot_manager.robots) != 0:
-            self.motion_manager.set_motion(
-                entity=self.robot_manager.selected_robot,
-                motion_func=self.motion_manager.motion.rotation
-            )
+            self.camera_manager.camera.look_at(self.robot_manager.selected_robot.world_pos)
 
         self.motion_manager.update(dt, t_cur)
 
@@ -68,11 +54,11 @@ class Simulator:
     def select_entity(self, selected_type, entity_number=None):
         if selected_type == 'robot':
             if entity_number is not None and 0 <= entity_number < len(self.robot_manager.robots):
-                self._selected_entity = self.robot_manager.robots[entity_number]
+                self.selected_entity = self.robot_manager.robots[entity_number]
             else:
                 pass
         elif selected_type == 'camera':
-            self._selected_entity = self.camera_manager.camera
+            self.selected_entity = self.camera_manager.camera
 
 
 

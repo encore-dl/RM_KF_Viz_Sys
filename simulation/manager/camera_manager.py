@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 from object.entity.camera import Camera
 
@@ -15,6 +16,6 @@ class CameraManager:
             (self.camera_screen_width, self.camera_screen_height),
             np.array([0., 0., 0.]),
             60,
-            10,
+            100,
             np.array([0., 0., 0.])
         )

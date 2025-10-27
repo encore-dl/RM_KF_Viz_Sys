@@ -12,7 +12,7 @@ class Camera:
         self.world_rpy = orient
         self.world_omg = np.array([0., 0., 0.])
 
-        self.fov = math.radians(fov)  # field of view 视场角
+        self.fov = math.radians(fov)  # field of view 视场角 弧度制
         self.max_range = max_range  # 相机最远识别范围/距离
         self.focal_len = 800  # 焦距 单位：像素
         self.resolution = resolution
@@ -67,15 +67,20 @@ class Camera:
 
     def look_at(self, aiming_pos):
         direction = aiming_pos - self.world_pos
+        direction_norm = direction / np.linalg.norm(direction)
 
-        self.world_rpy[2] = math.atan2(direction[1], direction[0])
+        self.world_rpy[2] = math.atan2(direction[1], direction[0]) - math.pi / 2
 
-        hrz_dist = math.sqrt(direction[0] ** 2 + direction[1] ** 2)
-        self.world_rpy[1] = math.atan2(-direction[2], hrz_dist)
+        xy_dist = math.sqrt(direction[0] ** 2 + direction[1] ** 2)
+        self.world_rpy[1] = math.atan2(-direction[2], xy_dist)
 
         self.world_rpy[1] = np.clip(self.world_rpy[1], -math.pi / 2, math.pi / 2)
 
-    # def
+    def get_forward_vec(self):
+        R = get_euler_rotate_matrix(self.world_rpy)
+        forward_vec = R @ np.array([0., 1., 0.])
+
+        return forward_vec
 
 
 
