@@ -27,11 +27,11 @@ PI = math.pi
 # 基本定义
 # pygame的screen坐标系是：x 右 y 下
 
-# 世界坐标系：x 右 y 前 z 上
+# 世界坐标系：x 前 y 右 z 上
 # 相机坐标系：x 右 y 下 z 前
 # 图像坐标系：x 右 y 下
 # 像素坐标系：u 右 v 下
-# 空间旋转为 x roll y pitch z yaw -> xyz rpy
+# 空间旋转为 前 roll 右 pitch 上 yaw
 class Visualizer:
     def __init__(self, screen_width, screen_height):
         self.screen_width = screen_width
@@ -42,6 +42,8 @@ class Visualizer:
         self.main_screen_height = self.screen_height
         self.camera_screen_width = self.screen_width // 3
         self.camera_screen_height = self.screen_height // 2
+        self.info_screen_width = self.screen_width // 3
+        self.info_screen_height = self.screen_height // 2
 
         self.main_screen_center = np.array([self.screen_width // 3, self.screen_height // 2])
         self.camera_screen_center = np.array([self.screen_width // 6 * 5, self.screen_height // 6])

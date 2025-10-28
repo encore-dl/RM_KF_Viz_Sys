@@ -74,26 +74,26 @@ class Robot:
             armor.robot_type = self.robot_type
             armor.priority = self.priority
 
-            # 世界坐标系：x 右 y 前 z 上
-            # 逆时针为：x正 y正 x负 y负
-            # 但是在图像上是 顺时针
+            # 世界坐标系：x 前 y 右 z 上
+            # 逆时针为：y正 x正 y负 x负
+            # 方向角来看，是 x正时yaw = 0，顺时针为正
             if self.armor_count == 4:
-                if i % 2 == 0:
-                    if i == 0:
+                if i % 2 == 0:  # 前后装甲板
+                    if i == 0:  # 前装甲
                         armor.world_pos[0] = self.world_pos[0] + self.length / 2
                         armor.world_rpy[2] = 0.
-                    elif i == 2:
+                    elif i == 2:  # 后装甲
                         armor.world_pos[0] = self.world_pos[0] - self.length / 2
-                        armor.world_rpy[2] = -math.pi
+                        armor.world_rpy[2] = math.pi
                     armor.world_pos[1] = self.world_pos[1]
                     armor.world_pos[2] = self.low_height
                     armor.radius = self.length / 2
-                else:
+                else:  # 左右装甲板
                     armor.world_pos[0] = self.world_pos[0]
-                    if i == 1:
+                    if i == 1:  # 右装甲
                         armor.world_pos[1] = self.world_pos[1] + self.width / 2
                         armor.world_rpy[2] = math.pi / 2
-                    elif i == 3:
+                    elif i == 3:  # 左装甲
                         armor.world_pos[1] = self.world_pos[1] - self.width / 2
                         armor.world_rpy[2] = -math.pi / 2
                     armor.world_pos[2] = self.high_height

@@ -70,11 +70,16 @@ def main():
 
 
 def is_key_up_still(key):
-    if (key == pg.K_UP or
-       key == pg.K_DOWN or
-       key == pg.K_LEFT or
-       key == pg.K_RIGHT):
-
+    if (
+        key == pg.K_UP or
+        key == pg.K_DOWN or
+        key == pg.K_LEFT or
+        key == pg.K_RIGHT or
+        key == pg.K_KP4 or
+        key == pg.K_KP6 or
+        key == pg.K_KP1 or
+        key == pg.K_KP3
+    ):
         return True
 
 
@@ -110,6 +115,16 @@ def selected_entity_move(key, simulator):
         simulator.motion_manager.set_motion(
             entity=simulator.selected_entity,
             motion_func=simulator.motion_manager.motion.rotate_clockwise
+        )
+    elif key == pg.K_KP1:
+        simulator.motion_manager.set_motion(
+            entity=simulator.selected_entity,
+            motion_func=simulator.motion_manager.motion.top_rotate_anticlockwise
+        )
+    elif key == pg.K_KP3:
+        simulator.motion_manager.set_motion(
+            entity=simulator.selected_entity,
+            motion_func=simulator.motion_manager.motion.top_rotate_clockwise
         )
     elif key == pg.K_SPACE:  # 空格 暂停
         simulator.motion_manager.set_motion(

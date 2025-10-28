@@ -8,7 +8,7 @@ STEP = 80.
 
 class Motion:
     @staticmethod
-    def hrz_osc(state, t, dt):
+    def up_down_osc(state, t, dt):
         ampl = 200.0
         freq = 0.25
 
@@ -23,7 +23,7 @@ class Motion:
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
-    def vert_osc(state, t, dt):
+    def left_right_osc(state, t, dt):
         ampl = 180.0
         freq = 0.25
 
@@ -55,7 +55,7 @@ class Motion:
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
-    def hrz_osc_rotate(state, t, dt):
+    def up_right_osc_rotate(state, t, dt):
         ampl = 200.0
         freq = 0.25
 
@@ -76,7 +76,7 @@ class Motion:
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
-    def vert_osc_rotate(state, t, dt):
+    def left_right_osc_rotate(state, t, dt):
         ampl = 180.0
         freq = 0.25
 
@@ -118,13 +118,6 @@ class Motion:
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
-    def rotate_clockwise(state, t, dt):
-        state.omg = np.array([0., 0., 2.])
-        state.rpy += state.omg * dt
-        state.rpy = limit_rad(state.rpy)
-        state.tpd = pos_to_tpd(state.pos)
-
-    @staticmethod
     def rotate_anticlockwise(state, t, dt):
         state.omg = np.array([0., 0., -2.])
         state.rpy += state.omg * dt
@@ -132,72 +125,89 @@ class Motion:
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
+    def rotate_clockwise(state, t, dt):
+        state.omg = np.array([0., 0., 2.])
+        state.rpy += state.omg * dt
+        state.rpy = limit_rad(state.rpy)
+        state.tpd = pos_to_tpd(state.pos)
+
+    @staticmethod
+    def top_rotate_anticlockwise(state, t, dt):
+        state.omg = np.array([0., 0., -10.])
+        state.rpy += state.omg * dt
+        state.rpy = limit_rad(state.rpy)
+        state.tpd = pos_to_tpd(state.pos)
+
+    @staticmethod
+    def top_rotate_clockwise(state, t, dt):
+        state.omg = np.array([0., 0., 10.])
+        state.rpy += state.omg * dt
+        state.rpy = limit_rad(state.rpy)
+        state.tpd = pos_to_tpd(state.pos)
+
+    @staticmethod
     def go_up(state, t, dt):
-        state.vel = np.array([0., -STEP, 0.])
+        state.vel = np.array([STEP, 0., 0.])
         state.pos += state.vel * dt
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
     def go_down(state, t, dt):
-        state.vel = np.array([0., STEP, 0.])
+        state.vel = np.array([-STEP, 0., 0.])
         state.pos += state.vel * dt
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
     def go_left(state, t, dt):
-        state.vel = np.array([-STEP, 0., 0.])
+        state.vel = np.array([0., -STEP, 0.])
         state.pos += state.vel * dt
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
     def go_right(state, t, dt):
-        state.vel = np.array([STEP, 0., 0.])
+        state.vel = np.array([0., STEP, 0.])
         state.pos += state.vel * dt
         state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
     def go_up_rotate(state, t, dt):
-        state.vel = np.array([0., -STEP, 0.])
+        state.vel = np.array([STEP, 0., 0.])
         state.pos += state.vel * dt
+        state.tpd = pos_to_tpd(state.pos)
 
         state.omg = np.array([0., 0., 2 * math.pi])
         state.rpy += state.omg * dt
         state.rpy = limit_rad(state.rpy)
-
-        state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
     def go_down_rotate(state, t, dt):
-        state.vel = np.array([0., STEP, 0.])
+        state.vel = np.array([-STEP, 0., 0.])
         state.pos += state.vel * dt
+        state.tpd = pos_to_tpd(state.pos)
 
         state.omg = np.array([0., 0., 2 * math.pi])
         state.rpy += state.omg * dt
         state.rpy = limit_rad(state.rpy)
-
-        state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
     def go_left_rotate(state, t, dt):
-        state.vel = np.array([-STEP, 0., 0.])
+        state.vel = np.array([0., -STEP, 0.])
         state.pos += state.vel * dt
+        state.tpd = pos_to_tpd(state.pos)
 
         state.omg = np.array([0., 0., 2 * math.pi])
         state.rpy += state.omg * dt
         state.rpy = limit_rad(state.rpy)
-
-        state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
     def go_right_rotate(state, t, dt):
-        state.vel = np.array([STEP, 0., 0.])
+        state.vel = np.array([0., STEP, 0.])
         state.pos += state.vel * dt
+        state.tpd = pos_to_tpd(state.pos)
 
         state.omg = np.array([0., 0., 2 * math.pi])
         state.rpy += state.omg * dt
         state.rpy = limit_rad(state.rpy)
-
-        state.tpd = pos_to_tpd(state.pos)
 
     @staticmethod
     def stay_inclined(state, t, dt):

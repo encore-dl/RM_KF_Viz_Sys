@@ -23,12 +23,12 @@ class Camera:
         rel_pos = world_pos - self.world_pos
         R = get_euler_rotate_matrix(self.world_rpy)
         camera_pos_temp = R @ rel_pos
-        # 世界坐标系：x 右 y 前 z 上
-        # 相机坐标系：x 右 y 下 z 前
+        # 世界坐标系：x前 y右 z上
+        # 相机坐标系：x右 y下 z前
         camera_pos = np.array([
-            camera_pos_temp[0],
-            -camera_pos_temp[2],
-            camera_pos_temp[1]
+            camera_pos_temp[1],  # y右 -> x右
+            -camera_pos_temp[2],  # z上 -> y下
+            camera_pos_temp[0]   # x前 -> z前
         ])
 
         return camera_pos
@@ -67,18 +67,16 @@ class Camera:
 
     def look_at(self, aiming_pos):
         direction = aiming_pos - self.world_pos
-        direction_norm = direction / np.linalg.norm(direction)
 
-        self.world_rpy[2] = math.atan2(direction[1], direction[0]) - math.pi / 2
+        self.world_rpy[2] = math.atan2(direction[1], direction[0])
 
         xy_dist = math.sqrt(direction[0] ** 2 + direction[1] ** 2)
         self.world_rpy[1] = math.atan2(-direction[2], xy_dist)
-
         self.world_rpy[1] = np.clip(self.world_rpy[1], -math.pi / 2, math.pi / 2)
 
     def get_forward_vec(self):
         R = get_euler_rotate_matrix(self.world_rpy)
-        forward_vec = R @ np.array([0., 1., 0.])
+        forward_vec = R @ np.array([1., 0., 0.])
 
         return forward_vec
 

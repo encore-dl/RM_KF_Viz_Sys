@@ -3,25 +3,25 @@ import numpy as np
 
 
 def get_euler_rotate_matrix(rpy):
-    R_x = np.array([
+    R_roll = np.array([
         [1., 0., 0.],
         [0., math.cos(rpy[0]), -math.sin(rpy[0])],
         [0., math.sin(rpy[0]), math.cos(rpy[0])]
     ])
 
-    R_y = np.array([
+    R_pitch = np.array([
         [math.cos(rpy[1]), 0., math.sin(rpy[1])],
         [0., 1., 0.],
         [-math.sin(rpy[1]), 0., math.cos(rpy[1])]
     ])
 
-    R_z = np.array([
+    R_yaw = np.array([
         [math.cos(rpy[2]), -math.sin(rpy[2]), 0.],
         [math.sin(rpy[2]), math.cos(rpy[2]), 0.],
         [0., 0., 1.]
     ])
 
-    R = R_z @ R_y @ R_x
+    R = R_roll @ R_pitch @ R_yaw
 
     return R
 
@@ -55,13 +55,17 @@ def pos_to_tpd_jacob(pos):
 
 
 def world_to_main_screen(world_pos, screen_center, world_scale):
-    screen_x = screen_center[0] + world_pos[0] * world_scale
-    screen_y = screen_center[1] + world_pos[1] * world_scale
+    # 世界坐标系：x 前 y 右 z 上
+    # 主屏幕坐标系：x 右 y 下
+    # 我们想要的是，向前是 world:+x or main_screen:-y
+    # 相当于俯视看，然后套用两个坐标系
+    screen_x = screen_center[0] + world_pos[1] * world_scale
+    screen_y = screen_center[1] - world_pos[0] * world_scale
 
     return np.array([int(screen_x), int(screen_y)])
 
 
-def camera_to_screen(camera_screen_pos):
+def camera_to_camera_screen(camera_screen_pos):
     if camera_screen_pos <= 0:
         return None
 
