@@ -11,7 +11,7 @@ class RobotManage:
         self.selected_robot = None
         self.camera = camera
 
-        self.noise_sigma = 0.7
+        self.noise_sigma = 0.2
 
     def create_robot(self, robot_type):
         robot = Robot(robot_type=robot_type)

@@ -21,7 +21,7 @@ def get_euler_rotate_matrix(rpy):
         [0., 0., 1.]
     ])
 
-    R = R_roll @ R_pitch @ R_yaw
+    R = R_yaw @ R_pitch @ R_roll
 
     return R
 
@@ -54,24 +54,15 @@ def pos_to_tpd_jacob(pos):
     ])
 
 
-def world_to_main_screen(world_pos, screen_center, world_scale):
+def world_to_main_screen(world_pos, main_screen_center, world_scale):
     # 世界坐标系：x 前 y 右 z 上
     # 主屏幕坐标系：x 右 y 下
     # 我们想要的是，向前是 world:+x or main_screen:-y
     # 相当于俯视看，然后套用两个坐标系
-    screen_x = screen_center[0] + world_pos[1] * world_scale
-    screen_y = screen_center[1] - world_pos[0] * world_scale
+    screen_x = main_screen_center[0] + world_pos[1] * world_scale
+    screen_y = main_screen_center[1] - world_pos[0] * world_scale
 
     return np.array([int(screen_x), int(screen_y)])
-
-
-def camera_to_camera_screen(camera_screen_pos):
-    if camera_screen_pos <= 0:
-        return None
-
-    # 透视投影
-    x_norm = camera_screen_pos[1] / camera_screen_pos[0]  # y / x
-    y_norm = camera_screen_pos[2] / camera_screen_pos[0]  # z / x
 
 
 def limit_rad(angle):

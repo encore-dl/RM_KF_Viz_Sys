@@ -41,30 +41,42 @@ class Visualizer:
         self.main_screen_width = self.screen_width // 3 * 2
         self.main_screen_height = self.screen_height
         self.camera_screen_width = self.screen_width // 3
-        self.camera_screen_height = self.screen_height // 2
+        self.camera_screen_height = self.screen_height // 3
         self.info_screen_width = self.screen_width // 3
-        self.info_screen_height = self.screen_height // 2
+        self.info_screen_height = self.screen_height // 3 * 2
 
         self.main_screen_center = np.array([self.screen_width // 3, self.screen_height // 2])
         self.camera_screen_center = np.array([self.screen_width // 6 * 5, self.screen_height // 6])
+        self.info_screen_center = np.array([self.screen_width // 6 * 5, self.screen_height // 3 * 2])
 
         self.world_scale = WORLD_SCALE
 
     def show(self, true_robots, obsrv_armors, tracker, camera):
         self.screen.fill(Color.BLACK)
 
-        self.show_main(true_robots, obsrv_armors, tracker, camera)
-        self.show_camera()
-        self.show_info()
+        print(camera.world_pos[2])
 
-    def show_main(self, true_robots, obsrv_armors, tracker, camera):
+        self.show_main_screen(true_robots, obsrv_armors, tracker, camera)
+        self.show_camera_screen(true_robots, obsrv_armors, tracker, camera)
+        self.show_info_screen()
+
+    def show_main_screen(self, true_robots, obsrv_armors, tracker, camera):
+        main_screen_rect = pg.Rect(
+            self.main_screen_center[0] - self.main_screen_width // 2,
+            self.main_screen_center[1] - self.main_screen_height // 2,
+            self.main_screen_width,
+            self.main_screen_height
+        )
+        pg.draw.rect(self.screen, (20, 20, 20), main_screen_rect)
+        pg.draw.rect(self.screen, Color.WHITE, main_screen_rect, 2)
+
         # 画真实装甲板
         # 也就是真实数据 true data
         for robot in true_robots:
             # 车，装甲板的可视化
             robot_main_screen_pos = world_to_main_screen(
                 world_pos=robot.world_pos,
-                screen_center=self.main_screen_center,
+                main_screen_center=self.main_screen_center,
                 world_scale=self.world_scale
             )
             pg.draw.circle(self.screen, Color.BLUE, robot_main_screen_pos, 6)
@@ -173,11 +185,84 @@ class Visualizer:
             )
             pg.draw.line(self.screen, Color.CYAN, camera_main_screen_pos, fan_mid_main_screen_pos, 1)
 
-    def show_camera(self):
-        pass
+    def show_camera_screen(self, true_robots, obsrv_armors, tracker, camera):
+        camera_screen_rect = pg.Rect(
+            self.camera_screen_center[0] - self.camera_screen_width // 2,
+            self.camera_screen_center[1] - self.camera_screen_height // 2,
+            self.camera_screen_width,
+            self.camera_screen_height
+        )
+        pg.draw.rect(self.screen, (5, 5, 5), camera_screen_rect)
+        pg.draw.rect(self.screen, Color.WHITE, camera_screen_rect, 2)
 
-    def show_info(self):
-        pass
+        # 画真实装甲板
+        # 也就是真实数据 true data
+        for robot in true_robots:
+            # 车，装甲板的可视化
+            robot_camera_screen_pos = camera.world_to_pixel(
+                robot.world_pos,
+                self.camera_screen_center,
+                (self.camera_screen_width, self.camera_screen_height)
+            )
+            if robot_camera_screen_pos is not None:
+                pg.draw.circle(self.screen, Color.BLUE, robot_camera_screen_pos, 6)
+
+            for armor in robot.armors:
+                armor_camera_screen_pos = camera.world_to_pixel(
+                    armor.world_pos,
+                    self.camera_screen_center,
+                    (self.camera_screen_width, self.camera_screen_height)
+                )
+                if armor_camera_screen_pos is not None:
+                    pg.draw.circle(self.screen, Color.WHITE, armor_camera_screen_pos, 4)
+
+        # 画 加了高斯噪声的装甲板
+        # 也就是观测数据 obsrv
+        for obsrv_armor in obsrv_armors:
+            obsrv_armor_camera_screen_pos = camera.world_to_pixel(
+                obsrv_armor.world_pos,
+                self.camera_screen_center,
+                (self.camera_screen_width, self.camera_screen_height)
+            )
+            if obsrv_armor_camera_screen_pos is not None:
+                pg.draw.circle(self.screen, Color.YELLOW, obsrv_armor_camera_screen_pos, 5)
+
+        # 画 模型导出的数据
+        # 也就是 估计数据 est
+        if tracker.is_tracked:
+            model = tracker.tongji_model
+
+            est_center_camera_screen_pos = camera.world_to_pixel(
+                [
+                    model.get_ekf().x[0],
+                    model.get_ekf().x[2],
+                    model.get_ekf().x[4]
+                ],
+                self.camera_screen_center,
+                (self.camera_screen_width, self.camera_screen_height)
+            )
+            if est_center_camera_screen_pos is not None:
+                pg.draw.circle(self.screen, Color.RED, est_center_camera_screen_pos, 6)
+
+            for armor_id in range(tracker.tracked_robot.armor_count):
+                est_armor_pos = model.get_est_armor_pos(model.get_ekf().x, armor_id)
+                est_armor_camera_screen_pos = camera.world_to_pixel(
+                    est_armor_pos,
+                    self.camera_screen_center,
+                    (self.camera_screen_width, self.camera_screen_height)
+                )
+                if est_armor_camera_screen_pos is not None:
+                    pg.draw.circle(self.screen, Color.PURPLE, est_armor_camera_screen_pos, 4)
+
+    def show_info_screen(self):
+        info_screen_rect = pg.Rect(
+            self.info_screen_center[0] - self.info_screen_width // 2,
+            self.info_screen_center[1] - self.info_screen_height // 2,
+            self.info_screen_width,
+            self.info_screen_height
+        )
+        pg.draw.rect(self.screen, (50, 50, 50), info_screen_rect)
+        pg.draw.rect(self.screen, Color.WHITE, info_screen_rect, 2)
 
 
 

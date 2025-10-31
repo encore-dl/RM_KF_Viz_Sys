@@ -5,7 +5,7 @@ from utils.math_tool import get_euler_rotate_matrix, pos_to_tpd
 
 
 class Camera:
-    def __init__(self, resolution, world_pos=np.array([0., 0., 0.]), fov=60, max_range=10, orient=np.array([0., 0., 0.])):
+    def __init__(self, world_pos=np.array([0., 0., 0.]), fov=60, max_range=10, orient=np.array([0., 0., 0.])):
         self.world_pos = world_pos
         self.world_vel = np.array([0., 0., 0.])
         self.world_tpd = pos_to_tpd(world_pos)
@@ -15,14 +15,20 @@ class Camera:
         self.fov = math.radians(fov)  # field of view 视场角 弧度制
         self.max_range = max_range  # 相机最远识别范围/距离
         self.focal_len = 800  # 焦距 单位：像素
-        self.resolution = resolution
 
         self.auto_aiming = False
 
+    def world_to_pixel(self, world_pos, camera_screen_center, resolution):
+        camera_pos = self.world_to_camera(world_pos)
+        return self.camera_to_pixel(camera_pos, camera_screen_center, resolution)
+
     def world_to_camera(self, world_pos):
+        # 这里是固定相机在世界坐标系原点，让所有点平移过去，然后相机不转，点转
+        # 但是相机的旋转和相机视角里点的旋转是相反的，作用在点上的旋转矩阵应当是R的逆
+        # 但R是正交矩阵，所以R转置等于R的逆
         rel_pos = world_pos - self.world_pos
         R = get_euler_rotate_matrix(self.world_rpy)
-        camera_pos_temp = R @ rel_pos
+        camera_pos_temp = R.T @ rel_pos
         # 世界坐标系：x前 y右 z上
         # 相机坐标系：x右 y下 z前
         camera_pos = np.array([
@@ -33,30 +39,29 @@ class Camera:
 
         return camera_pos
 
-    def camera_to_pixel(self, camera_pos):
+    def camera_to_pixel(self, camera_pos, camera_screen_center, resolution):
         if camera_pos[2] < 0:
             return None
 
         x_norm = camera_pos[0] / camera_pos[2]  # x / z
         y_norm = camera_pos[1] / camera_pos[2]  # y / z
 
-        u = x_norm * self.focal_len + self.resolution[0] / 2
-        v = y_norm * self.focal_len + self.resolution[1] / 2
+        u = x_norm * self.focal_len
+        v = y_norm * self.focal_len
 
-        if 0 <= u < self.resolution[0] and 0 <= v < self.resolution[1]:
-            return int(u), int(v)
+        if -resolution[0]/2 <= u < resolution[0]/2 and -resolution[1]/2 <= v < resolution[1]/2:
+            u += camera_screen_center[0]
+            v += camera_screen_center[1]
+
+            return np.array([int(u), int(v)])
         else:
             return None
-
-    def world_to_pixel(self, world_pos):
-        camera_pos = self.world_to_camera(world_pos)
-        return self.camera_to_pixel(camera_pos)
 
     def is_in_fov(self, world_pos):
         camera_pos = self.world_to_camera(world_pos)
 
         distance = np.linalg.norm(camera_pos)
-        if distance > self.max_range or camera_pos[2] <= 0:  # 点过远
+        if distance > self.max_range or camera_pos[2] <= 0:  # 点过远 或 在相机后面
             return False
 
         # 圆锥型视角 判断是否超出
@@ -79,17 +84,3 @@ class Camera:
         forward_vec = R @ np.array([1., 0., 0.])
 
         return forward_vec
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -101,8 +101,10 @@ class Robot:
             elif self.armor_count == 2:  # Sentry是双装甲板，设置为low height，id为 0，1
                 if i == 0:
                     armor.world_pos[0] = self.world_pos[0] + self.length / 2
+                    armor.world_rpy[2] = 0.
                 elif i == 1:
                     armor.world_pos[0] = self.world_pos[0] - self.length / 2
+                    armor.world_rpy[2] = math.pi
                 armor.world_pos[1] = self.world_pos[1]
                 armor.world_pos[2] = self.low_height
                 armor.radius = self.length / 2
@@ -110,6 +112,9 @@ class Robot:
             armor.world_tpd = pos_to_tpd(armor.world_pos)
 
             self.armors.append(armor)
+
+        self.world_pos[2] = np.mean([armor.world_pos[2] for armor in self.armors])
+        self.world_tpd = pos_to_tpd(self.world_pos)
 
 
 

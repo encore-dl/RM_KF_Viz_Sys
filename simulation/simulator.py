@@ -17,7 +17,7 @@ class Simulator:
         self.t_last = time.time()
 
         self.visualizer = Visualizer(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.camera_manager = CameraManager(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.camera_manager = CameraManager()
         self.robot_manager = RobotManage(self.camera_manager.camera)
         self.motion_manager = MotionManager()
         self.tracker = TongJiTracker()  # 暂时使用第一个robot
