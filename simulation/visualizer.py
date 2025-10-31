@@ -54,8 +54,6 @@ class Visualizer:
     def show(self, true_robots, obsrv_armors, tracker, camera):
         self.screen.fill(Color.BLACK)
 
-        print(camera.world_pos[2])
-
         self.show_main_screen(true_robots, obsrv_armors, tracker, camera)
         self.show_camera_screen(true_robots, obsrv_armors, tracker, camera)
         self.show_info_screen()

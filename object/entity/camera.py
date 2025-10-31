@@ -37,10 +37,13 @@ class Camera:
             camera_pos_temp[0]   # x前 -> z前
         ])
 
-        return camera_pos
+        if self.is_in_fov(camera_pos):
+            return camera_pos
+        else:
+            return None
 
     def camera_to_pixel(self, camera_pos, camera_screen_center, resolution):
-        if camera_pos[2] < 0:
+        if camera_pos is None or camera_pos[2] < 0:
             return None
 
         x_norm = camera_pos[0] / camera_pos[2]  # x / z
@@ -57,9 +60,7 @@ class Camera:
         else:
             return None
 
-    def is_in_fov(self, world_pos):
-        camera_pos = self.world_to_camera(world_pos)
-
+    def is_in_fov(self, camera_pos):
         distance = np.linalg.norm(camera_pos)
         if distance > self.max_range or camera_pos[2] <= 0:  # 点过远 或 在相机后面
             return False
@@ -84,3 +85,14 @@ class Camera:
         forward_vec = R @ np.array([1., 0., 0.])
 
         return forward_vec
+
+    def is_armor_visible(self, armor_world_pos, robot_world_pos):
+        robot_camera_vec = self.world_pos - robot_world_pos
+        robot_camera_univec = robot_camera_vec / np.linalg.norm(robot_camera_vec)
+
+        robot_armor_vec = armor_world_pos - robot_world_pos
+        robot_armor_univec = robot_armor_vec / np.linalg.norm(robot_armor_vec)
+
+        dot_product = np.dot(robot_camera_univec, robot_armor_univec)
+
+        return 0.5 <= dot_product <= 1  # 内积在 [√3/2, 1] 之间算看见

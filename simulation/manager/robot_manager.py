@@ -30,7 +30,7 @@ class RobotManage:
     def get_robots_count(self):
         return len(self.robots)
 
-    def get_obsrv_armors(self):  # 职能是给 robot的armor属性的位置属性 增添噪声，并输出该数据
+    def get_obsrv_armors(self, camera):  # 职能是给 robot的armor属性的位置属性 增添噪声，并输出该数据
         self.obsrv_armors = []
 
         for robot in self.robots:
@@ -38,7 +38,8 @@ class RobotManage:
                 noise = np.random.normal(0, self.noise_sigma, 3)
                 obsrv_armor = copy.deepcopy(armor)
                 obsrv_armor.world_pos += noise
-                self.obsrv_armors.append(obsrv_armor)
+                if camera.is_armor_visible(obsrv_armor.world_pos, robot.world_pos):
+                    self.obsrv_armors.append(obsrv_armor)
 
 
 

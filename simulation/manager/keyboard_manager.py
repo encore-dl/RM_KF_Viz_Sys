@@ -25,7 +25,8 @@ class KeyboardManager:
     MOTION_KEY_LIST = [
         pg.K_UP, pg.K_DOWN, pg.K_LEFT, pg.K_RIGHT,
         pg.K_a, pg.K_d, pg.K_z, pg.K_c, pg.K_w, pg.K_x,
-        pg.K_g, pg.K_b
+        pg.K_g, pg.K_b,
+        pg.K_KP1, pg.K_KP2, pg.K_KP3, pg.K_KP4, pg.K_KP5, pg.K_KP6
     ]
 
     def __init__(self):
@@ -92,7 +93,7 @@ class KeyboardManager:
             simulator.select_entity('robot', 0)
         elif key == pg.K_2:
             simulator.select_entity('camera')
-        elif key == pg.K_KP5:
+        elif key == pg.K_KP9:
             simulator.camera_manager.camera.auto_aiming = not simulator.camera_manager.camera.auto_aiming
         elif key == pg.K_SPACE:
             simulator.motion_manager.set_motion(
@@ -207,7 +208,13 @@ class KeyboardManager:
             pg.K_w: motion.pitch_up,
             pg.K_x: motion.pitch_down,
             pg.K_g: motion.ascend,
-            pg.K_b: motion.descend
+            pg.K_b: motion.descend,
+            pg.K_KP1: motion.up_down_osc,
+            pg.K_KP2: motion.left_right_osc,
+            pg.K_KP3: motion.diag_osc,
+            pg.K_KP4: motion.up_down_osc_rotate,
+            pg.K_KP5: motion.left_right_osc_rotate,
+            pg.K_KP6: motion.diag_osc_rotate
         }
 
         for key in self.MOTION_KEY_LIST:

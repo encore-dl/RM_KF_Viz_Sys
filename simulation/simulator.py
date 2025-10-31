@@ -47,7 +47,7 @@ class Simulator:
         self.motion_manager.update(dt, t_cur)
 
         # 生产被观测的数据，实际上只有被观测的装甲板，套robot的皮
-        self.robot_manager.get_obsrv_armors()
+        self.robot_manager.get_obsrv_armors(self.camera_manager.camera)
         if len(self.robot_manager.obsrv_armors) != 0:
             self.tracker.track(self.robot_manager.obsrv_armors, dt, self.visualizer.camera_screen_center)
     

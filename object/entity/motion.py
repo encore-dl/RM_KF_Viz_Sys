@@ -3,7 +3,7 @@ import math
 
 from utils.math_tool import pos_to_tpd, limit_rad
 
-STEP = 80.
+STEP = 150.
 
 
 class Motion:
