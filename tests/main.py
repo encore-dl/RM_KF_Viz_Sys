@@ -1,16 +1,17 @@
 import pygame as pg
 
-from simulation.manager.keyboard_manager import KeyboardManager
+from simulation.manager.system_manager.keyboard_manager import KeyboardManager
 from simulation.simulator import Simulator
 
 
 def main():
     pg.init()
     pg.display.set_caption("RoboMaster KF Visualization System")
-    clock = pg.time.Clock()
 
     simulator = Simulator()
     keyboard_manager = KeyboardManager()
+
+    simulator.tracker_thread_manager.run_tracker_thread()
 
     running = True
     while running:
@@ -23,10 +24,9 @@ def main():
                     running = False
 
         keyboard_manager.update(simulator)
-        simulator.run()
+        simulator.run_simulator()
 
         pg.display.flip()
-        clock.tick(60)
 
     pg.quit()
 

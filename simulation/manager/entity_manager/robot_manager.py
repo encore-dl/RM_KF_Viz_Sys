@@ -1,17 +1,18 @@
 import numpy as np
 import copy
+import pygame.time as pgtime
 
 from object.entity.robot import (Robot)
 
 
-class RobotManage:
+class RobotManager:
     def __init__(self, camera=None):
         self.robots = []
-        self.obsrv_armors = []
+        self.obsrv_armors_with_t = None
         self.selected_robot = None
         self.camera = camera
 
-        self.noise_sigma = 0.2
+        self.noise_sigma = 0.
 
     def create_robot(self, robot_type):
         robot = Robot(robot_type=robot_type)
@@ -31,7 +32,7 @@ class RobotManage:
         return len(self.robots)
 
     def get_obsrv_armors(self, camera):  # 职能是给 robot的armor属性的位置属性 增添噪声，并输出该数据
-        self.obsrv_armors = []
+        obsrv_armors = []
 
         for robot in self.robots:
             for i, armor in enumerate(robot.armors):
@@ -39,7 +40,12 @@ class RobotManage:
                 obsrv_armor = copy.deepcopy(armor)
                 obsrv_armor.world_pos += noise
                 if camera.is_armor_visible(obsrv_armor.world_pos, robot.world_pos):
-                    self.obsrv_armors.append(obsrv_armor)
+                    obsrv_armors.append(obsrv_armor)
+
+        self.obsrv_armors_with_t = (
+            obsrv_armors,
+            pgtime.get_ticks() / 1000.
+        )
 
 
 

@@ -1,5 +1,3 @@
-import numpy as np
-
 from object.model.tongji.tracking.track_state_machine import TrackStateMachine
 from object.model.tongji.tracking.track_state_machine import MachineState
 from object.model.tongji.tongji_model import TongJiModel
@@ -8,7 +6,7 @@ from object.entity.robot import Robot
 
 class TongJiTracker:
     def __init__(self):
-        self.tongji_model = TongJiModel()
+        self.model = TongJiModel()
         self.track_state_machine = TrackStateMachine()
 
         self.state = MachineState.lost
@@ -21,16 +19,16 @@ class TongJiTracker:
             return False
 
         self.tracked_robot = Robot(obsrv_armor.robot_type)
-        self.tongji_model.init_model(obsrv_armor, self.tracked_robot.armor_count)
+        self.model.init_model(obsrv_armor, self.tracked_robot.armor_count)
 
         return True
 
     def run_model(self, obsrv_armors, dt):
-        if not self.tongji_model:
+        if not self.model:
             return False
 
         # kalman预测
-        self.tongji_model.predict(dt)
+        self.model.predict(dt)
 
         # 统计和 tracked robot 匹配的 obsrv 装甲板
         found_count = 0
@@ -53,7 +51,7 @@ class TongJiTracker:
                     armor.armor_size != self.tracked_robot.armor_size):
                 continue
 
-            self.tongji_model.update(armor)  # 本来是有个solve_pnp的，但是这里没，所以直接提供3d值
+            self.model.update(armor)  # 本来是有个solve_pnp的，但是这里没，所以直接提供3d值
 
             # n -= 1
             # if n == 0:
@@ -61,14 +59,19 @@ class TongJiTracker:
 
         return True
 
-    def track(self, obsrv_armors, dt, camera_screen_center):
-        if obsrv_armors is not None:
-            # 图像中心排序
-            obsrv_armors.sort(key=lambda a: np.linalg.norm(
-                np.array([a.world_pos[0] * 1000, a.world_pos[1] * 1000]) - camera_screen_center
-            ))
-            # 击打优先级排序
-            obsrv_armors.sort(key=lambda a: a.priority)
+    def track(self, obsrv_armors, dt):
+        # if obsrv_armors is not None:
+        #     # 图像中心排序
+        #     obsrv_armors.sort(key=lambda a: np.linalg.norm(
+        #         np.array([a.world_pos[0] * 1000, a.world_pos[1] * 1000]) - camera_screen_center
+        #     ))
+        #     # 击打优先级排序
+        #     obsrv_armors.sort(key=lambda a: a.priority)
+
+        self.is_tracked = False
+        if not obsrv_armors or len(obsrv_armors) == 0:
+            self.state = MachineState.lost
+            return
 
         # 目标的跟踪过程
         found = False
@@ -80,24 +83,31 @@ class TongJiTracker:
         # 更新状态机
         self.state = self.track_state_machine.state_change(found, self.tracked_robot.robot_type)
 
+        # self.is_tracked = True
+        # return
+
         # 已经发散
         if self.state == MachineState.lost:
             self.is_tracked = False
+            return
         
         # 检测是否发散
-        if self.state != MachineState.lost and self.tongji_model.diverged():
+        if self.state != MachineState.lost and self.model.diverged():
             print("model diverged!")
             self.state = MachineState.lost
             self.is_tracked = False
+            return
 
         # 检查收敛状况
-        if (self.state != MachineState.lost and
-           self.tongji_model.get_ekf().data["recent_nis_failures"] >= 0.4 * self.tongji_model.get_ekf().window_size):
+        if self.state != MachineState.lost and self.model.nis_failed():
             print("bad convergence!")
             self.state = MachineState.lost
             self.is_tracked = False
+            return
 
-        self.is_tracked = True
+        if self.state == MachineState.tracking and not self.model.diverged():
+            self.is_tracked = True
+            return
 
 
 

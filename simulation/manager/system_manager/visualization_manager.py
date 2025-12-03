@@ -32,7 +32,7 @@ PI = math.pi
 # 图像坐标系：x 右 y 下
 # 像素坐标系：u 右 v 下
 # 空间旋转为 前 roll 右 pitch 上 yaw
-class Visualizer:
+class VisualizationManager:
     def __init__(self, screen_width, screen_height):
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -71,6 +71,8 @@ class Visualizer:
         # 画真实装甲板
         # 也就是真实数据 true data
         for robot in true_robots:
+            print(robot.world_omg)
+            print()
             # 车，装甲板的可视化
             robot_main_screen_pos = world_to_main_screen(
                 world_pos=robot.world_pos,
@@ -99,13 +101,13 @@ class Visualizer:
 
         # 画 模型导出的数据
         # 也就是 估计数据 est
-        if tracker.is_tracked:
-            model = tracker.tongji_model
+        if tracker is not None and tracker.is_tracked:
+            model = tracker.model
 
             est_center_main_screen_pos = world_to_main_screen(
                 [
-                    model.get_ekf().x[0],
-                    model.get_ekf().x[2]
+                    model.get_est_center_pos()[0],
+                    model.get_est_center_pos()[1]
                 ],
                 self.main_screen_center,
                 self.world_scale
@@ -113,7 +115,7 @@ class Visualizer:
             pg.draw.circle(self.screen, Color.RED, est_center_main_screen_pos, 6)
             
             for armor_id in range(tracker.tracked_robot.armor_count):
-                est_armor_pos = model.get_est_armor_pos(model.get_ekf().x, armor_id)
+                est_armor_pos = model.get_est_armor_pos(armor_id)
                 est_armor_main_screen_pos = world_to_main_screen(
                     est_armor_pos,
                     self.main_screen_center,
@@ -227,14 +229,14 @@ class Visualizer:
 
         # 画 模型导出的数据
         # 也就是 估计数据 est
-        if tracker.is_tracked:
-            model = tracker.tongji_model
+        if tracker is not None and tracker.is_tracked:
+            model = tracker.model
 
             est_center_camera_screen_pos = camera.world_to_pixel(
                 [
-                    model.get_ekf().x[0],
-                    model.get_ekf().x[2],
-                    model.get_ekf().x[4]
+                    model.get_est_center_pos()[0],
+                    model.get_est_center_pos()[1],
+                    model.get_est_center_pos()[2]
                 ],
                 self.camera_screen_center,
                 (self.camera_screen_width, self.camera_screen_height)
@@ -243,7 +245,7 @@ class Visualizer:
                 pg.draw.circle(self.screen, Color.RED, est_center_camera_screen_pos, 6)
 
             for armor_id in range(tracker.tracked_robot.armor_count):
-                est_armor_pos = model.get_est_armor_pos(model.get_ekf().x, armor_id)
+                est_armor_pos = model.get_est_armor_pos(armor_id)
                 est_armor_camera_screen_pos = camera.world_to_pixel(
                     est_armor_pos,
                     self.camera_screen_center,
