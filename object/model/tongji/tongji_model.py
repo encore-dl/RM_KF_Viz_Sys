@@ -11,6 +11,7 @@ from utils.math_tool import limit_rad, pos_to_tpd, pos_to_tpd_jacob
 class TongJiModel:
     def __init__(self):
         self.armor = None
+
         self._ekf = None
 
         self.last_id = None
@@ -78,7 +79,7 @@ class TongJiModel:
 
         self._ekf.x[6] = limit_rad(self._ekf.x[6])
 
-    def get_est_armor_pos(self, x_, armor_id):
+    def _get_est_armor_pos(self, x_, armor_id):
         est_armor_agl = limit_rad(x_[6] + armor_id * 2 * math.pi / self.armor_count)
         is_change_l_h = (self.armor_count == 4) and (armor_id % 2 == 1)
 
@@ -111,7 +112,7 @@ class TongJiModel:
         dz_dh = 1. if is_change_l_h else 0.
 
         def get_est_armor_pos(x_):
-            return self.get_est_armor_pos(x_, armor.armor_id)
+            return self._get_est_armor_pos(x_, armor.armor_id)
 
         est_armor_pos = get_est_armor_pos(x)
         est_armor_tpd = pos_to_tpd_jacob(est_armor_pos)
@@ -174,8 +175,9 @@ class TongJiModel:
         self.update_count += 1
 
     def diverged(self):
-        r_ok = 0.05 < self._ekf.x[8] < 0.5
-        l_ok = 0.05 < (self._ekf.x[8] + self._ekf.x[9]) < 0.5
+        r_ok = 10. < self._ekf.x[8] < 30.
+        l_ok = 5. < (self._ekf.x[8] + self._ekf.x[9]) < 30.
+        print(self._ekf.x[8], (self._ekf.x[8] + self._ekf.x[9]))
 
         return not (r_ok and l_ok)
 
@@ -187,9 +189,27 @@ class TongJiModel:
 
         return self.is_converged
 
-    def get_ekf(self):
-        return self._ekf
+    def get_est_armor_pos(self, armor_id):
+        x_ = self._ekf.x
 
+        est_armor_agl = limit_rad(x_[6] + armor_id * 2 * math.pi / self.armor_count)
+        is_change_l_h = (self.armor_count == 4) and (armor_id % 2 == 1)
+
+        r = x_[8] + x_[9] if is_change_l_h else x_[8]
+        z_offs = x_[10] if is_change_l_h else 0.
+
+        armor_x = x_[0] + r * math.cos(est_armor_agl)
+        armor_y = x_[2] + r * math.sin(est_armor_agl)
+        armor_z = x_[4] + z_offs
+
+        return np.array([armor_x, armor_y, armor_z])
+
+    def get_est_center_pos(self):
+        return np.array([self._ekf.x[0], self._ekf.x[2], self._ekf.x[4]])
+
+    def nis_failed(self):
+        return self._ekf.data["recent_nis_failures"] >= 0.4 * self._ekf.window_size
+        # print(self._ekf.data["recent_nis_failures"], 0.4 * self._ekf.window_size)
 
 
 

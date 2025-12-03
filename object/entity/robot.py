@@ -54,7 +54,7 @@ class Robot:
         self.load_config()
 
     def load_config(self):
-        with open('data/config.yaml', 'r') as file:
+        with open('../data/config.yaml', 'r') as file:
             data = yaml.safe_load(file)
 
         robot_name_str = RobotType.get_name(self.robot_type)

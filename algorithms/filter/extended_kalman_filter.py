@@ -70,10 +70,12 @@ class ExtendedKalmanFilter:
         # 协方差的预测
         self.P = F @ self.P @ F.T + Q
 
-    def update(self, z, H, R, h_func, z_subtract_func, x_true=None):
+    def update(self, z, H, R, z_subtract_func, h_func=None, H_jacobian=None, x_true=None):
         # KF的更新三公式
         if h_func is not None:
             z_pred = h_func(self.x)
+            if H_jacobian is not None:
+                H = H_jacobian(self.x)
         else:
             z_pred = H @ self.x
 
