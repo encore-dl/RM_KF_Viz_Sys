@@ -2,24 +2,24 @@ import threading
 import queue
 import time
 
-from object.model.tongji.tracking.tongji_tracker import TongJiTracker
-from object.model.tjurm.tracking.tjurm_tracker import TJURMTracker
 
-
-class TrackerThreadManager:
+class TrackerManager:
     def __init__(self):
         self.running = True
 
         self._input_queue = queue.Queue(maxsize=10)
         self._output_queue = queue.Queue(maxsize=5)
 
-        self._tracker = TongJiTracker()
+        self._tracker = None
         self.tracker_thread = None
 
-        self.target_thread_fps = 200.
+        self.target_thread_fps = 300.
 
         self.fps = 0.
-        self.fps_calculate_num = 10
+        self.fps_window_len = 10
+
+    def set_tracker(self, tracker):
+        self._tracker = tracker
 
     def run_tracker_thread(self):
         self.tracker_thread = threading.Thread(
@@ -38,7 +38,7 @@ class TrackerThreadManager:
             curr_t = time.time()
             dts.append(curr_t - last_t)
             last_t = curr_t
-            if len(dts) == self.fps_calculate_num:
+            if len(dts) == self.fps_window_len:
                 self.fps = len(dts) / sum(dts)
                 dts = []
 
@@ -55,10 +55,13 @@ class TrackerThreadManager:
                     # input_dt = max(min(input_dt, 0.1), 0.001)
                 last_input_t_stamp = input_t_stamp
 
-                self._tracker.track(obsrv_armors, input_dt)
+                self._tracker.track(obsrv_armors, input_dt, input_t_stamp)  # 调用track
 
                 output_data = (
-                    self._tracker,
+                    self._tracker.is_tracked,
+                    self._tracker.pred_pos,
+                    self._tracker.status,
+                    self.fps,
                     time.time()  # output 的时间戳
                 )
 
@@ -101,14 +104,35 @@ class TrackerThreadManager:
         while True:
             try:
                 output_data = self._output_queue.get_nowait()
-                if curr_t - output_data[1] <= max_delay:
+                if curr_t - output_data[-1] <= max_delay:
                     if (best_output_data is None or
-                            output_data[1] > best_output_data[1]):
+                            output_data[-1] > best_output_data[-1]):
                         best_output_data = output_data
             except queue.Empty:
                 break
 
         return best_output_data
+
+    def thread_shut_down(self, timeout=5.):
+        self.running = False
+
+        if self.tracker_thread and self.tracker_thread.is_alive():
+            self.tracker_thread.join(timeout=timeout)
+
+        while not self._input_queue.empty():
+            try:
+                self._input_queue.get_nowait()
+            except queue.Empty:
+                break
+
+        while not self._output_queue.empty():
+            try:
+                self._output_queue.get_nowait()
+            except queue.Empty:
+                break
+
+    def __del__(self):
+        self.thread_shut_down()
 
 
 

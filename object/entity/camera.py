@@ -32,7 +32,7 @@ class Camera:
         # 世界坐标系：x前 y右 z上
         # 相机坐标系：x右 y下 z前
         camera_pos = np.array([
-            camera_pos_temp[1],  # y右 -> x右
+            -camera_pos_temp[1],  # y右 -> x右
             -camera_pos_temp[2],  # z上 -> y下
             camera_pos_temp[0]   # x前 -> z前
         ])
@@ -82,11 +82,14 @@ class Camera:
 
     def get_forward_vec(self):
         R = get_euler_rotate_matrix(self.world_rpy)
-        forward_vec = R @ np.array([1., 0., 0.])
+        forward_vec = R @ np.array([0.01, 0., 0.])
 
         return forward_vec
 
     def is_armor_visible(self, armor_world_pos, robot_world_pos):
+        if self.world_to_camera(armor_world_pos) is None:
+            return False
+
         robot_camera_vec = self.world_pos - robot_world_pos
         robot_camera_univec = robot_camera_vec / np.linalg.norm(robot_camera_vec)
 
@@ -96,3 +99,4 @@ class Camera:
         dot_product = np.dot(robot_camera_univec, robot_armor_univec)
 
         return 0.5 <= dot_product <= 1  # 内积在 [√3/2, 1] 之间算看见
+

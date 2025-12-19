@@ -19,7 +19,7 @@ class Color:
     CYAN = (0, 255, 255)
 
 
-WORLD_SCALE = 2
+WORLD_SCALE = 200
 
 PI = math.pi
 
@@ -51,14 +51,14 @@ class VisualizationManager:
 
         self.world_scale = WORLD_SCALE
 
-    def show(self, true_robots, obsrv_armors, tracker, camera):
+    def show(self, true_robots, obsrv_armors, tracker_info, camera):
         self.screen.fill(Color.BLACK)
 
-        self.show_main_screen(true_robots, obsrv_armors, tracker, camera)
-        self.show_camera_screen(true_robots, obsrv_armors, tracker, camera)
-        self.show_info_screen()
+        self.show_main_screen(true_robots, obsrv_armors, tracker_info, camera)
+        self.show_camera_screen(true_robots, obsrv_armors, tracker_info, camera)
+        self.show_info_screen(true_robots, obsrv_armors, tracker_info)
 
-    def show_main_screen(self, true_robots, obsrv_armors, tracker, camera):
+    def show_main_screen(self, true_robots, obsrv_armors, tracker_info, camera):
         main_screen_rect = pg.Rect(
             self.main_screen_center[0] - self.main_screen_width // 2,
             self.main_screen_center[1] - self.main_screen_height // 2,
@@ -71,8 +71,6 @@ class VisualizationManager:
         # 画真实装甲板
         # 也就是真实数据 true data
         for robot in true_robots:
-            print(robot.world_omg)
-            print()
             # 车，装甲板的可视化
             robot_main_screen_pos = world_to_main_screen(
                 world_pos=robot.world_pos,
@@ -100,28 +98,29 @@ class VisualizationManager:
             pg.draw.circle(self.screen, Color.YELLOW, obsrv_armor_main_screen_pos, 5)
 
         # 画 模型导出的数据
-        # 也就是 估计数据 est
-        if tracker is not None and tracker.is_tracked:
-            model = tracker.model
-
-            est_center_main_screen_pos = world_to_main_screen(
-                [
-                    model.get_est_center_pos()[0],
-                    model.get_est_center_pos()[1]
-                ],
-                self.main_screen_center,
-                self.world_scale
-            )
-            pg.draw.circle(self.screen, Color.RED, est_center_main_screen_pos, 6)
-            
-            for armor_id in range(tracker.tracked_robot.armor_count):
-                est_armor_pos = model.get_est_armor_pos(armor_id)
-                est_armor_main_screen_pos = world_to_main_screen(
-                    est_armor_pos,
+        # 也就是 预测数据 pred
+        if tracker_info is not None and tracker_info.is_tracked:
+            if tracker_info.pred_pos[0] is not None:
+                pred_center_main_screen_pos = world_to_main_screen(
+                    [
+                        tracker_info.pred_pos[0][0],
+                        tracker_info.pred_pos[0][1]
+                    ],
                     self.main_screen_center,
                     self.world_scale
                 )
-                pg.draw.circle(self.screen, Color.PURPLE, est_armor_main_screen_pos, 4)
+                print(pred_center_main_screen_pos)
+                pg.draw.circle(self.screen, Color.RED, pred_center_main_screen_pos, 6)
+
+            if len(tracker_info.pred_pos) > 1:
+                for armor_id in range(len(tracker_info.pred_pos[1:])):
+                    pred_armor_pos = tracker_info.pred_pos[armor_id+1]
+                    pred_armor_main_screen_pos = world_to_main_screen(
+                        pred_armor_pos,
+                        self.main_screen_center,
+                        self.world_scale
+                    )
+                    pg.draw.circle(self.screen, Color.PURPLE, pred_armor_main_screen_pos, 4)
 
         # 绘制相机在 main screen 上的位置
         camera_main_screen_pos = world_to_main_screen(
@@ -185,7 +184,7 @@ class VisualizationManager:
             )
             pg.draw.line(self.screen, Color.CYAN, camera_main_screen_pos, fan_mid_main_screen_pos, 1)
 
-    def show_camera_screen(self, true_robots, obsrv_armors, tracker, camera):
+    def show_camera_screen(self, true_robots, obsrv_armors, tracker_info, camera):
         camera_screen_rect = pg.Rect(
             self.camera_screen_center[0] - self.camera_screen_width // 2,
             self.camera_screen_center[1] - self.camera_screen_height // 2,
@@ -228,33 +227,33 @@ class VisualizationManager:
                 pg.draw.circle(self.screen, Color.YELLOW, obsrv_armor_camera_screen_pos, 5)
 
         # 画 模型导出的数据
-        # 也就是 估计数据 est
-        if tracker is not None and tracker.is_tracked:
-            model = tracker.model
-
-            est_center_camera_screen_pos = camera.world_to_pixel(
-                [
-                    model.get_est_center_pos()[0],
-                    model.get_est_center_pos()[1],
-                    model.get_est_center_pos()[2]
-                ],
-                self.camera_screen_center,
-                (self.camera_screen_width, self.camera_screen_height)
-            )
-            if est_center_camera_screen_pos is not None:
-                pg.draw.circle(self.screen, Color.RED, est_center_camera_screen_pos, 6)
-
-            for armor_id in range(tracker.tracked_robot.armor_count):
-                est_armor_pos = model.get_est_armor_pos(armor_id)
-                est_armor_camera_screen_pos = camera.world_to_pixel(
-                    est_armor_pos,
+        # 也就是 预测数据 pred
+        if tracker_info is not None and tracker_info.is_tracked:
+            if tracker_info.pred_pos[0] is not None:
+                pred_center_camera_screen_pos = camera.world_to_pixel(
+                    [
+                        tracker_info.pred_pos[0][0],
+                        tracker_info.pred_pos[0][1],
+                        tracker_info.pred_pos[0][2]
+                    ],
                     self.camera_screen_center,
                     (self.camera_screen_width, self.camera_screen_height)
                 )
-                if est_armor_camera_screen_pos is not None:
-                    pg.draw.circle(self.screen, Color.PURPLE, est_armor_camera_screen_pos, 4)
+                if pred_center_camera_screen_pos is not None:
+                    pg.draw.circle(self.screen, Color.RED, pred_center_camera_screen_pos, 6)
 
-    def show_info_screen(self):
+            if len(tracker_info.pred_pos) > 1:
+                for armor_id in range(len(tracker_info.pred_pos[1:])):
+                    pred_armor_pos = tracker_info.pred_pos[armor_id+1]
+                    pred_armor_camera_screen_pos = camera.world_to_pixel(
+                        pred_armor_pos,
+                        self.camera_screen_center,
+                        (self.camera_screen_width, self.camera_screen_height)
+                    )
+                    if pred_armor_camera_screen_pos is not None:
+                        pg.draw.circle(self.screen, Color.PURPLE, pred_armor_camera_screen_pos, 4)
+
+    def show_info_screen(self, true_robots, obsrv_armors, tracker_info):
         info_screen_rect = pg.Rect(
             self.info_screen_center[0] - self.info_screen_width // 2,
             self.info_screen_center[1] - self.info_screen_height // 2,
@@ -263,6 +262,122 @@ class VisualizationManager:
         )
         pg.draw.rect(self.screen, (50, 50, 50), info_screen_rect)
         pg.draw.rect(self.screen, Color.WHITE, info_screen_rect, 2)
+
+        texts_colors = []
+
+        def entry_append(text_, color_):
+            texts_colors.append((text_, color_))
+
+        for true_robot in true_robots:
+            entry_append(
+                f"true robot pos: {', '.join(f'{x:.3f}' for x in true_robot.world_pos)}",
+                Color.WHITE
+            )
+            for armor in true_robot.armors:
+                entry_append(
+                    f"true armor pos: {', '.join(f'{x:.3f}' for x in armor.world_pos)}",
+                    Color.GREEN
+                )
+
+        for obsrv_armor in obsrv_armors:
+            entry_append(
+                f"obsrv armor pos: {', '.join(f'{x:.3f}' for x in obsrv_armor.world_pos)}",
+                Color.WHITE
+            )
+        if len(obsrv_armors) == 1:
+            entry_append(
+                f"padding",
+                Color.WHITE
+            )
+
+        if tracker_info is not None:
+            entry_append(
+                f"is tracked: {tracker_info.is_tracked}",
+                Color.GREEN
+            )
+            entry_append(
+                f"pred robot pos: ({', '.join(f'{x:.3f}' for x in tracker_info.pred_pos[0])})" if tracker_info.pred_pos[0] is not None else "pred robot pos: None",
+                Color.WHITE
+            )
+            if len(tracker_info.pred_pos) > 1:
+                for i in range(1, len(tracker_info.pred_pos)):
+                    entry_append(
+                        f"pred armor pos: ({tracker_info.pred_pos[i][0]:.3f}, {tracker_info.pred_pos[i][1]:.3f}, {tracker_info.pred_pos[i][2]:.3f})",
+                        Color.GREEN
+                    )
+            if len(tracker_info.state_vecs) == 3:
+                entry_append(
+                    f"main model x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[0])})",
+                    Color.WHITE
+                )
+                entry_append(
+                    f"center model x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[1])})",
+                    Color.GREEN
+                )
+                entry_append(
+                    f"omega model x: ({', '.join(f'{(x):.3f}' for x in tracker_info.state_vecs[2])})",
+                    Color.WHITE
+                )
+            entry_append(
+                f"fps: {tracker_info.fps:.3f}",
+                Color.GREEN
+            )
+
+        entry_count = len(texts_colors)
+        font_size = 24
+
+        max_entry_count = (info_screen_rect.height - 40) // (font_size + 8)
+        while entry_count > max_entry_count and font_size > 12:
+            font_size -= 2
+            max_entry_count = (info_screen_rect.height - 40) // (font_size + 8)
+
+        font = pg.font.SysFont(None, font_size)
+        line_height = font_size + 8
+
+        entry_per_col_count = max_entry_count
+        col_count = max(1, math.ceil(entry_count / entry_per_col_count))
+
+        col_width = info_screen_rect.width // col_count
+
+        for col in range(col_count):
+            start_idx = col * entry_per_col_count
+            end_idx = min((col+1) * entry_per_col_count, entry_count)
+
+            curr_y = info_screen_rect.top + 20
+
+            for i, (text, color) in enumerate(texts_colors[start_idx:end_idx]):
+                x = info_screen_rect.left + 10 + col * col_width
+
+                text_width = font.size(text)[0]
+                if text_width > col_width - 20:
+                    words = text.split(' ')
+                    broken_lines = []
+                    curr_line = ""
+
+                    for word in words:
+                        test_line = curr_line + word + " "
+                        if font.size(test_line)[0] <= col_width - 20:
+                            curr_line = test_line
+                        else:
+                            if curr_line:
+                                broken_lines.append(curr_line.strip())
+                            curr_line = word + " "
+
+                    if curr_line:
+                        broken_lines.append(curr_line.strip())
+
+                    for j, broken_line in enumerate(broken_lines):
+                        surface = font.render(broken_line, True, color)
+                        self.screen.blit(surface, (x, curr_y))
+                        curr_y += line_height
+                else:
+                    surface = font.render(text, True, color)
+                    self.screen.blit(surface, (x, curr_y))
+                    curr_y += line_height
+
+
+
+
 
 
 

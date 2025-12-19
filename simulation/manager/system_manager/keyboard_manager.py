@@ -84,6 +84,8 @@ class KeyboardManager:
         elif self.combo_first_key == pg.K_RETURN:
             if second_key == pg.K_1:
                 simulator.robot_manager.create_robot(RobotType.Hero)
+            elif second_key == pg.K_2:
+                simulator.robot_manager.create_robot(RobotType.Sentry)
 
     @staticmethod
     def do_single_key(key, simulator):
@@ -91,7 +93,7 @@ class KeyboardManager:
             return 'escape'
         elif key == pg.K_1:
             simulator.select_entity('robot', 0)
-        elif key == pg.K_2:
+        elif key == pg.K_9:
             simulator.select_entity('camera')
         elif key == pg.K_KP9:
             simulator.camera_manager.camera.auto_aiming = not simulator.camera_manager.camera.auto_aiming

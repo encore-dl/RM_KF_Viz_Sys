@@ -59,8 +59,8 @@ def world_to_main_screen(world_pos, main_screen_center, world_scale):
     # 主屏幕坐标系：x 右 y 下
     # 我们想要的是，向前是 world:+x or main_screen:-y
     # 相当于俯视看，然后套用两个坐标系
-    screen_x = main_screen_center[0] + world_pos[1] * world_scale
-    screen_y = main_screen_center[1] - world_pos[0] * world_scale
+    screen_x = main_screen_center[0] + world_pos[0] * world_scale
+    screen_y = main_screen_center[1] - world_pos[1] * world_scale
 
     return np.array([int(screen_x), int(screen_y)])
 

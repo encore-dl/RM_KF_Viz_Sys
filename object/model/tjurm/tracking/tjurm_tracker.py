@@ -1,87 +1,52 @@
-# from object.model.tjurm.tjurm_model import TJURMModel
-from object.model.tjurm.submodel.antitop import Antitop
-from object.model.tongji.tracking.track_state_machine import TrackStateMachine, MachineState
-from object.entity.robot import Robot
+from object.model.tjurm.tjurm_model import TJURMModel
+
+from object.entity.robot import Robot, RobotType
+
+
+class TrackedRobot:
+    def __init__(self, robot_type):
+        self.robot = Robot(robot_type)
+        self.model = TJURMModel()
 
 
 class TJURMTracker:
-    """TJURM跟踪器"""
-
     def __init__(self):
-        self.model = Antitop()
-        self.track_state_machine = TrackStateMachine()
+        self.tracked_robots = [
+            TrackedRobot(RobotType.Hero),
+            TrackedRobot(RobotType.Infantry),
+            TrackedRobot(RobotType.Sentry),
+            TrackedRobot(RobotType.Engineer),
+        ]
+        self.robot_type_map = {
+            RobotType.Hero: 0,
+            RobotType.Infantry: 1,
+            RobotType.Sentry: 2,
+            RobotType.Engineer: 3
+        }
 
-        self.state = MachineState.lost
-        self.tracked_robot = None
         self.is_tracked = False
+        self.pred_pos = []
+        self.status = None
 
-    def init_model(self, obsrv_armor=None):
-        """初始化模型"""
-        if obsrv_armor is None:
-            return False
+    def track(self, obsrv_armors, dt, t_stamp):
+        for obsrv_armor in obsrv_armors:
+            self.tracked_robots[self.robot_type_map[obsrv_armor.robot_type]].model.push(obsrv_armor, t_stamp)
 
-        self.tracked_robot = Robot(obsrv_armor.robot_type)
-        self.model.init_model(obsrv_armor, self.tracked_robot.armor_count)
-
-        return True
-
-    def run_model(self, obsrv_armors, dt):
-        """运行模型"""
-        if not self.model:
-            return False
-
-        # 预测步骤
-        self.model.predict(dt)
-
-        # 统计匹配的观测装甲板
-        found_count = 0
-        for armor in obsrv_armors:
-            if (armor.robot_type != self.tracked_robot.robot_type or
-                    armor.armor_size != self.tracked_robot.armor_size):
-                continue
-
-            found_count += 1
-
-        if found_count == 0:
-            return False
-
-        # 更新步骤
-        for armor in obsrv_armors:
-            if (armor.robot_type != self.tracked_robot.robot_type or
-                    armor.armor_size != self.tracked_robot.armor_size):
-                continue
-
-            self.model.update(armor)
-            break  # 先用一个装甲板更新
-
-        return True
-
-    def track(self, obsrv_armors, dt):
-        """主跟踪函数"""
-        self.is_tracked = False
-
-        if not obsrv_armors or len(obsrv_armors) == 0:
-            self.state = MachineState.lost
-            return
-
-        # 目标跟踪过程
-        found = False
-        if self.track_state_machine.state == MachineState.lost:
-            found = self.init_model(obsrv_armors[0])
-        else:
-            found = self.run_model(obsrv_armors, dt)
-
-        # 更新状态机
-        self.state = self.track_state_machine.state_change(
-            found,
-            self.tracked_robot.robot_type if self.tracked_robot else None
-        )
-
-        if self.state == MachineState.lost:
-            self.is_tracked = False
-            return
+        for tracked_robot in self.tracked_robots:
+            tracked_robot.model.update()
 
         self.is_tracked = True
+        self.pred_pos = self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]].model.get_pred_pos()
+        self.status = [
+            self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]].model.antitop.main_model.x,
+            self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]].model.antitop.center_model.x,
+            self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]].model.antitop.omega_model.x,
+        ]
+
+        return True
+
+
+
 
 
 

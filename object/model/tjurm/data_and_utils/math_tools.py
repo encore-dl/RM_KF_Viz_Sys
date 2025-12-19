@@ -66,3 +66,14 @@ def get_toggle(armor_count, toggle, target_angle: float, src_angle: float) -> in
     return differ_toggle ^ toggle
 
 
+def get_angle_min(armor_angle, x, y, armor_count):
+    center_angle = math.atan2(y, x)
+    return get_angle_trans(armor_count, center_angle, armor_angle, None)
+
+
+def get_distance(pose1, pose2):
+    """计算3维位姿之间的距离"""
+    dx = pose1[0] - pose2[0]
+    dy = pose1[1] - pose2[1]
+    dz = pose1[2] - pose2[2]
+    return math.sqrt(dx * dx + dy * dy + dz * dz)

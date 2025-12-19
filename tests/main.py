@@ -3,6 +3,9 @@ import pygame as pg
 from simulation.manager.system_manager.keyboard_manager import KeyboardManager
 from simulation.simulator import Simulator
 
+from object.model.tongji.tracking.tongji_tracker import TongJiTracker
+from object.model.tjurm.tracking.tjurm_tracker import TJURMTracker
+
 
 def main():
     pg.init()
@@ -11,7 +14,8 @@ def main():
     simulator = Simulator()
     keyboard_manager = KeyboardManager()
 
-    simulator.tracker_thread_manager.run_tracker_thread()
+    simulator.tracker_manager.set_tracker(TJURMTracker())
+    simulator.tracker_manager.run_tracker_thread()
 
     running = True
     while running:

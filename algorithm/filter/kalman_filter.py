@@ -2,7 +2,13 @@ import numpy as np
 
 
 class KalmanFilter:
-    def __init__(self, x0=None, P0=None, x_add_func=None):
+    def __init__(self, x0=None, P0=None, x_add_func=None, state_dim=None):
+        self.state_dim = None
+
+        if state_dim is not None:
+            self.state_dim = state_dim
+            self.x = np.zeros(self.state_dim)
+
         # 从x0或P0推导状态维度
         if x0 is not None:
             self.state_dim = len(x0)
@@ -10,10 +16,10 @@ class KalmanFilter:
         elif P0 is not None:
             self.state_dim = P0.shape[0]
             self.x = np.zeros(self.state_dim)
-        else:
-            # 默认情况
-            self.state_dim = 11
-            self.x = np.zeros(self.state_dim)
+
+        if self.state_dim is None:
+            print("KalmanFilter state_dim error")
+            raise ValueError
 
         # 初始化协方差矩阵
         if P0 is not None:

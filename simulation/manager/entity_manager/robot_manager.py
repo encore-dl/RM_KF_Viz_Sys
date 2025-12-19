@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-import pygame.time as pgtime
+import time
 
 from object.entity.robot import (Robot)
 
@@ -12,7 +12,7 @@ class RobotManager:
         self.selected_robot = None
         self.camera = camera
 
-        self.noise_sigma = 0.
+        self.noise_sigma = 0.000
 
     def create_robot(self, robot_type):
         robot = Robot(robot_type=robot_type)
@@ -44,7 +44,7 @@ class RobotManager:
 
         self.obsrv_armors_with_t = (
             obsrv_armors,
-            pgtime.get_ticks() / 1000.
+            time.time()
         )
 
 

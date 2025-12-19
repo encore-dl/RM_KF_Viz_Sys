@@ -1,12 +1,12 @@
+import dataclasses
+
 import pygame.time as pgtime
 
 from simulation.manager.entity_manager.robot_manager import RobotManager
 from simulation.manager.entity_manager.camera_manager import CameraManager
 from simulation.manager.entity_manager.motion_manager import MotionManager
 from simulation.manager.system_manager.visualization_manager import VisualizationManager
-from simulation.manager.system_manager.tracker_thread_manager import TrackerThreadManager
-
-from object.model.tongji.tracking.tongji_tracker import TongJiTracker
+from simulation.manager.system_manager.tracker_manager import TrackerManager
 
 
 SCREEN_WIDTH = 1500
@@ -23,23 +23,29 @@ class Simulator:
         self.robot_manager = RobotManager(self.camera_manager.camera)
         self.motion_manager = MotionManager()
         self.visualization_manager = VisualizationManager(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.tracker_thread_manager = TrackerThreadManager()
+        self.tracker_manager = TrackerManager()
 
         self.selected_entity = None
 
     def run_simulator(self):
         self.update()
 
-        output_data = self.tracker_thread_manager.get_tracker_output()
+        output_data = self.tracker_manager.get_tracker_output()
         if output_data is None:
-            tracker = None
+            tracker_info = None
         else:
-            tracker = output_data[0]
+            @dataclasses.dataclass
+            class TrackerInfo:
+                is_tracked = output_data[0]
+                pred_pos = output_data[1]
+                state_vecs = output_data[2]
+                fps = output_data[-2]
+            tracker_info = TrackerInfo()
 
         self.visualization_manager.show(
             self.robot_manager.robots,
             self.robot_manager.obsrv_armors_with_t[0],
-            tracker,
+            tracker_info,
             self.camera_manager.camera
         )
 
@@ -58,7 +64,7 @@ class Simulator:
         # 生产被观测的数据，实际上只有被观测的装甲板
         self.robot_manager.get_obsrv_armors(self.camera_manager.camera)
         if len(self.robot_manager.obsrv_armors_with_t[0]) != 0:
-            self.tracker_thread_manager.put_tracker_input(
+            self.tracker_manager.put_tracker_input(
                 self.robot_manager.obsrv_armors_with_t
             )
 

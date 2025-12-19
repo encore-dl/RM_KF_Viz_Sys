@@ -5,8 +5,6 @@ from typing import Tuple
 
 
 class SlideIntegrator:
-    """滑动积分器，用于自身运动补偿"""
-
     def __init__(self, size: int = 200, delay: float = 0.1):
         self.size = size
         self.delay = delay
@@ -34,6 +32,7 @@ class SlideIntegrator:
                 return 0.0, 0.0
 
             if start_time > end_time:
+                print("SlideIntegrator::getIntegral: start time is greater than end time")
                 return 0.0, 0.0
 
             x_integral = 0.0

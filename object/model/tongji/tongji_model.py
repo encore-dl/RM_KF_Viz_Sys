@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 from object.entity.robot import RobotType
-from algorithms.filter.extended_kalman_filter import ExtendedKalmanFilter
+from algorithm.filter.extended_kalman_filter import ExtendedKalmanFilter
 from utils.math_tool import limit_rad, pos_to_tpd, pos_to_tpd_jacob
 
 
@@ -10,7 +10,7 @@ from utils.math_tool import limit_rad, pos_to_tpd, pos_to_tpd_jacob
 # 观测向量元素: [roll, pitch, yaw, agl]
 class TongJiModel:
     def __init__(self):
-        self.armor = None
+        self.obsrv_armor = None
 
         self._ekf = None
 
@@ -21,16 +21,16 @@ class TongJiModel:
 
         self.is_converged = False
 
-    def init_model(self, armor, armor_count):
-        self.armor = armor
+    def init_model(self, obsrv_armor, armor_count):
+        self.obsrv_armor = obsrv_armor
         self.armor_count = armor_count
 
         x0 = np.array([
-            self.armor.world_pos[0], 0,
-            self.armor.world_pos[1], 0,
-            self.armor.world_pos[2], 0,
-            self.armor.world_rpy[0], 0,
-            self.armor.radius, 0, 0,
+            self.obsrv_armor.world_pos[0], 0,
+            self.obsrv_armor.world_pos[1], 0,
+            self.obsrv_armor.world_pos[2], 0,
+            self.obsrv_armor.world_rpy[0], 0,
+            self.obsrv_armor.radius, 0, 0,
         ])
         P0_diag = np.array([1, 64, 1, 64, 1, 64, 0.4, 100, 1, 1, 1])
         P0 = np.diag(P0_diag)
@@ -49,7 +49,7 @@ class TongJiModel:
         F[4, 5] = dt  # z = z + vz*dt
         F[6, 7] = dt  # a = a + w*dt
 
-        v1, v2 = (10, 0.1) if self.armor.robot_type == RobotType.Outpost else (100, 400)
+        v1, v2 = (10, 0.1) if self.obsrv_armor.robot_type == RobotType.Outpost else (100, 400)
         p_noise = dt ** 4 / 4
         pv_noise = dt ** 3 / 2
         v_noise = dt ** 2
@@ -72,7 +72,7 @@ class TongJiModel:
         ]
 
         # 人工设置前哨战的最高转速
-        if self.is_converged and self.armor.robot_type == RobotType.Outpost and abs(self._ekf.x[7]) > 2:
+        if self.is_converged and self.obsrv_armor.robot_type == RobotType.Outpost and abs(self._ekf.x[7]) > 2:
             self._ekf.x[7] = 2.51 if self._ekf.x[7] > 0 else -2.51
 
         self._ekf.predict(F, Q)
@@ -177,35 +177,40 @@ class TongJiModel:
     def diverged(self):
         r_ok = 10. < self._ekf.x[8] < 30.
         l_ok = 5. < (self._ekf.x[8] + self._ekf.x[9]) < 30.
-        print(self._ekf.x[8], (self._ekf.x[8] + self._ekf.x[9]))
+        # print(self._ekf.x[8], (self._ekf.x[8] + self._ekf.x[9]))
 
         return not (r_ok and l_ok)
 
     def converged(self):
-        if self.armor.robot_type != RobotType.Outpost and self.update_count > 3 and not self.diverged():
+        if self.obsrv_armor.robot_type != RobotType.Outpost and self.update_count > 3 and not self.diverged():
             self.is_converged = True
-        if self.armor.robot_type == RobotType.Outpost and self.update_count > 10 and not self.diverged():
+        if self.obsrv_armor.robot_type == RobotType.Outpost and self.update_count > 10 and not self.diverged():
             self.is_converged = True
 
         return self.is_converged
 
-    def get_est_armor_pos(self, armor_id):
-        x_ = self._ekf.x
+    def get_pred_armor_pos(self):
+        pred_armor_pos = []
 
-        est_armor_agl = limit_rad(x_[6] + armor_id * 2 * math.pi / self.armor_count)
-        is_change_l_h = (self.armor_count == 4) and (armor_id % 2 == 1)
+        for armor_id in range(self.armor_count):
+            x_ = self._ekf.x
 
-        r = x_[8] + x_[9] if is_change_l_h else x_[8]
-        z_offs = x_[10] if is_change_l_h else 0.
+            est_armor_agl = limit_rad(x_[6] + armor_id * 2 * math.pi / self.armor_count)
+            is_change_l_h = (self.armor_count == 4) and (armor_id % 2 == 1)
 
-        armor_x = x_[0] + r * math.cos(est_armor_agl)
-        armor_y = x_[2] + r * math.sin(est_armor_agl)
-        armor_z = x_[4] + z_offs
+            r = x_[8] + x_[9] if is_change_l_h else x_[8]
+            z_offs = x_[10] if is_change_l_h else 0.
 
-        return np.array([armor_x, armor_y, armor_z])
+            armor_x = x_[0] + r * math.cos(est_armor_agl)
+            armor_y = x_[2] + r * math.sin(est_armor_agl)
+            armor_z = x_[4] + z_offs
 
-    def get_est_center_pos(self):
-        return np.array([self._ekf.x[0], self._ekf.x[2], self._ekf.x[4]])
+            pred_armor_pos.append([armor_x, armor_y, armor_z])
+
+        return pred_armor_pos
+
+    def get_pred_robot_pos(self):
+        return [self._ekf.x[0], self._ekf.x[2], self._ekf.x[4]]
 
     def nis_failed(self):
         return self._ekf.data["recent_nis_failures"] >= 0.4 * self._ekf.window_size

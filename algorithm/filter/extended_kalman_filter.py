@@ -3,7 +3,13 @@ from collections import deque
 
 
 class ExtendedKalmanFilter:
-    def __init__(self, x0=None, P0=None, x_add_func=None):
+    def __init__(self, x0=None, P0=None, x_add_func=None, state_dim=None):
+        self.state_dim = None
+
+        if state_dim is not None:
+            self.state_dim = state_dim
+            self.x = np.zeros(self.state_dim)
+
         # 从x0或P0推导状态维度
         if x0 is not None:
             self.state_dim = len(x0)
@@ -11,10 +17,10 @@ class ExtendedKalmanFilter:
         elif P0 is not None:
             self.state_dim = P0.shape[0]
             self.x = np.zeros(self.state_dim)
-        else:
-            # 默认情况
-            self.state_dim = 11
-            self.x = np.zeros(self.state_dim)
+
+        if self.state_dim is None:
+            print("ExtendedKalmanFilter state_dim error")
+            raise ValueError
 
         # 初始化协方差矩阵
         if P0 is not None:
@@ -56,6 +62,10 @@ class ExtendedKalmanFilter:
         # 统计阈值 (95% 置信度)
         self.nis_threshold = 9.488  # 卡方检验，自由度=4
         self.nees_threshold = 19.675  # 卡方检验，自由度=11 (状态维度)
+
+    def restart(self):
+        self.x = np.zeros(self.state_dim)
+        self.P = np.eye(self.state_dim)
 
     def predict(self, F, Q, f_func=None, F_jacobian=None):
         # KF的预测两公式

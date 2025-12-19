@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 
+from object.model.tjurm.data_and_utils.slide_integrator import SlideIntegrator
 
 @dataclass
 class TJURMConfig:
     """TJURM模型配置参数"""
     # TrackQueue参数
     track_count: int = 10
-    track_distance: float = 0.15
+    track_distance: float = 0.2
     track_delay: float = 0.5
     track_fire_interval: float = 0.05
     track_fire_high_delay: float = 0.02
@@ -26,3 +27,9 @@ class TJURMConfig:
     antitop_to_track: float = 0.6
     armor_to_center: float = 0.7
     center_to_armor: float = 0.6
+
+    slide_integrator = SlideIntegrator(2000, 2.0)
+
+    rotate_delay = 0.05
+
+

@@ -10,8 +10,8 @@ class CameraManager:
         self.selected_camera = None
 
         self.camera = Camera(
-            world_pos=np.array([0., 0., 15.]),
+            world_pos=np.array([0., 0., 0.15]),
             fov=60,
-            max_range=300,
+            max_range=3,
             orient=np.array([0., 0., 0.])
         )
