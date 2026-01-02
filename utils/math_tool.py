@@ -54,6 +54,22 @@ def pos_to_tpd_jacob(pos):
     ])
 
 
+def rad_to_deg(rad):
+    return (rad * 360.) / (2*math.pi)
+
+
+def deg_to_rad(deg):
+    return (deg * 2*math.pi) / 360.
+
+
+def rad_to_ratio(rad):
+    return (rad + math.pi) / (2*math.pi)
+
+
+def deg_to_ratio(deg):
+    return rad_to_ratio(deg_to_rad(deg))
+
+
 def world_to_main_screen(world_pos, main_screen_center, world_scale):
     # 世界坐标系：x 前 y 右 z 上
     # 主屏幕坐标系：x 右 y 下

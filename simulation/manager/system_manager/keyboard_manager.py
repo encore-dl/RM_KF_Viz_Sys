@@ -1,239 +1,100 @@
 import pygame as pg
-from typing import Optional
-
 from object.entity.robot import RobotType
 
 
 class KeyboardManager:
-    COMBO_FIRST_KEY = {
-        pg.K_BACKSPACE, pg.K_RETURN
-    }
+    def __init__(self, simulator):
+        self.simulator = simulator
+        self.motion = simulator.motion_manager.motion
 
-    KEY_TO_NUM_MAP = {
-        pg.K_0: 0,
-        pg.K_1: 1,
-        pg.K_2: 2,
-        pg.K_3: 3,
-        pg.K_4: 4,
-        pg.K_5: 5,
-        pg.K_6: 6,
-        pg.K_7: 7,
-        pg.K_8: 8,
-        pg.K_9: 9
-    }
-
-    MOTION_KEY_LIST = [
-        pg.K_UP, pg.K_DOWN, pg.K_LEFT, pg.K_RIGHT,
-        pg.K_a, pg.K_d, pg.K_z, pg.K_c, pg.K_w, pg.K_x,
-        pg.K_g, pg.K_b,
-        pg.K_KP1, pg.K_KP2, pg.K_KP3, pg.K_KP4, pg.K_KP5, pg.K_KP6
-    ]
-
-    def __init__(self):
         self.pressed_keys = set()
-        self.combo_mode = False
-        self.combo_first_key: Optional[int] = None
-        self.is_key_up = False
 
-    def handle_event(self, event, simulator):
+        # 映射
+        self.trans_key_func_map = {
+            pg.K_UP: self.motion.go_up,
+            pg.K_DOWN: self.motion.go_down,
+            pg.K_LEFT: self.motion.go_left,
+            pg.K_RIGHT: self.motion.go_right,
+            pg.K_g: self.motion.ascend,
+            pg.K_b: self.motion.descend,
+        }
+
+        self.rot_key_func_map = {
+            pg.K_a: self.motion.rotate_anticlockwise,
+            pg.K_d: self.motion.rotate_clockwise,
+            pg.K_z: self.motion.top_rotate_anticlockwise,
+            pg.K_c: self.motion.top_rotate_clockwise,
+            pg.K_w: self.motion.pitch_up,
+            pg.K_x: self.motion.pitch_down,
+        }
+
+        # 功能键映射
+        self.spec_key_func_map = {
+            pg.K_ESCAPE: lambda: 'escape',
+            pg.K_1: lambda: self.simulator.select_entity('robot', 0),
+            pg.K_2: lambda: self.simulator.select_entity('robot', 1),  # 示例
+            pg.K_9: lambda: self.simulator.select_entity('camera'),
+            pg.K_KP9: self.simulator.camera_manager.switch_auto_aiming,
+            pg.K_SPACE: lambda: self.simulator.motion_manager.instant_stop(self.simulator.selected_entity)
+        }
+
+    def handle_event(self, event):
         if event.type == pg.KEYDOWN:
             self.pressed_keys.add(event.key)
-            self.is_key_up = False
 
-            if event.key in self.COMBO_FIRST_KEY:
-                self.combo_mode = True
-                self.combo_first_key = event.key
-                return
-
-            if self.combo_mode:
-                self.do_combo_key(event.key, simulator)
-                self.combo_mode = False
-                return
-
-            self.do_single_key(event.key, simulator)
+            self.handle_combo_key(event.key)
+            self.handle_single_key(event.key)
         elif event.type == pg.KEYUP:
-            self.pressed_keys.remove(event.key)
-            self.is_key_up = True
+            if event.key in self.pressed_keys:
+                self.pressed_keys.remove(event.key)
 
-            if self.combo_mode and event.key == self.combo_first_key:  # combo 模式的第一个键
-                self.combo_mode = False
+        self.handle_motion_key()
 
-    def update(self, simulator):
-        # 最后一个键松开后，运动停止
-        if self.is_key_up and len(self.pressed_keys) == 0:
-            simulator.motion_manager.set_motion(
-                entity=simulator.selected_entity,
-                motion_func=simulator.motion_manager.motion.stay_still
-            )
-            self.is_key_up = False
-            return
-        #
-        if self.is_key_up and len(self.pressed_keys) > 0:
-            self.do_current_keys(simulator)
-            self.is_key_up = False
-            return
+    def handle_combo_key(self, key):
+        # 前面处理combo键
+        if pg.K_BACKSPACE in self.pressed_keys:
+            if pg.K_0 <= key <= pg.K_9:
+                robot_id = key - pg.K_0
+                self.simulator.robot_manager.delete_robot(robot_id)
+                return
 
-        if len(self.pressed_keys) > 0:
-            self.do_current_keys(simulator)
+        if pg.K_RETURN in self.pressed_keys:
+            if key == pg.K_1:
+                self.simulator.robot_manager.create_robot(RobotType.Hero)
+                return
+            elif key == pg.K_2:
+                self.simulator.robot_manager.create_robot(RobotType.Sentry)
+                return
 
-    def do_combo_key(self, second_key, simulator):
-        if self.combo_first_key == pg.K_BACKSPACE:
-            robot_num = self.KEY_TO_NUM_MAP.get(second_key)
-            if robot_num is not None:
-                simulator.robot_manager.delete_robot(robot_num)
-        elif self.combo_first_key == pg.K_RETURN:
-            if second_key == pg.K_1:
-                simulator.robot_manager.create_robot(RobotType.Hero)
-            elif second_key == pg.K_2:
-                simulator.robot_manager.create_robot(RobotType.Sentry)
+    def handle_single_key(self, key):
+        # 如果没有触发任何 Combo，再处理单键逻辑
+        if key in self.spec_key_func_map:
+            self.spec_key_func_map[key]()
 
-    @staticmethod
-    def do_single_key(key, simulator):
-        if key == pg.K_ESCAPE:
-            return 'escape'
-        elif key == pg.K_1:
-            simulator.select_entity('robot', 0)
-        elif key == pg.K_9:
-            simulator.select_entity('camera')
-        elif key == pg.K_KP9:
-            simulator.camera_manager.camera.auto_aiming = not simulator.camera_manager.camera.auto_aiming
-        elif key == pg.K_SPACE:
-            simulator.motion_manager.set_motion(
-                entity=simulator.selected_entity,
-                motion_func=simulator.motion_manager.motion.stay_still
-            )
+    def handle_motion_key(self):
+        # 对在 pressed_keys 中的 motion key 进行统一处理
 
-        return None
-
-    def do_current_keys(self, simulator):
-        motion_keys = self.pressed_keys & set(self.MOTION_KEY_LIST)
-
-        if not motion_keys:
-            simulator.motion_manager.set_motion(
-                entity=simulator.selected_entity,
-                motion_func=simulator.motion_manager.motion.stay_still
-            )
+        entity = self.simulator.selected_entity
+        if entity is None:
             return
 
-        if self.do_multi_keys(motion_keys, simulator):
-            return
+        curr_motions = set()
 
-        self.do_single_motion_key(motion_keys, simulator)
+        # 处理平移和旋转
+        has_trans = False
+        for key, func in self.trans_key_func_map.items():
+            if key in self.pressed_keys:
+                curr_motions.add(func)
+                has_trans = True
 
-    @staticmethod
-    def do_multi_keys(motion_keys, simulator):
-        motion = simulator.motion_manager.motion
+        has_rot = False
+        for key, func in self.rot_key_func_map.items():
+            if key in self.pressed_keys:
+                curr_motions.add(func)
+                has_rot = True
 
-        multi_key_motion_map = {
-            frozenset([pg.K_UP, pg.K_LEFT]): motion.go_up_left,
-            frozenset([pg.K_UP, pg.K_RIGHT]): motion.go_up_right,
-            frozenset([pg.K_DOWN, pg.K_LEFT]): motion.go_down_left,
-            frozenset([pg.K_DOWN, pg.K_RIGHT]): motion.go_down_right,
-
-            frozenset([pg.K_UP, pg.K_a]): motion.go_up_rotate_anticlockwise,
-            frozenset([pg.K_DOWN, pg.K_a]): motion.go_down_rotate_anticlockwise,
-            frozenset([pg.K_LEFT, pg.K_a]): motion.go_left_rotate_anticlockwise,
-            frozenset([pg.K_RIGHT, pg.K_a]): motion.go_right_rotate_anticlockwise,
-            frozenset([pg.K_UP, pg.K_LEFT, pg.K_a]): motion.go_up_left_rotate_anticlockwise,
-            frozenset([pg.K_UP, pg.K_RIGHT, pg.K_a]): motion.go_up_right_rotate_anticlockwise,
-            frozenset([pg.K_DOWN, pg.K_LEFT, pg.K_a]): motion.go_down_left_rotate_anticlockwise,
-            frozenset([pg.K_DOWN, pg.K_RIGHT, pg.K_a]): motion.go_down_right_rotate_anticlockwise,
-
-            frozenset([pg.K_UP, pg.K_d]): motion.go_up_rotate_clockwise,
-            frozenset([pg.K_DOWN, pg.K_d]): motion.go_down_rotate_clockwise,
-            frozenset([pg.K_LEFT, pg.K_d]): motion.go_left_rotate_clockwise,
-            frozenset([pg.K_RIGHT, pg.K_d]): motion.go_right_rotate_clockwise,
-            frozenset([pg.K_UP, pg.K_LEFT, pg.K_d]): motion.go_up_left_rotate_clockwise,
-            frozenset([pg.K_UP, pg.K_RIGHT, pg.K_d]): motion.go_up_right_rotate_clockwise,
-            frozenset([pg.K_DOWN, pg.K_LEFT, pg.K_d]): motion.go_down_left_rotate_clockwise,
-            frozenset([pg.K_DOWN, pg.K_RIGHT, pg.K_d]): motion.go_down_right_rotate_clockwise,
-
-            frozenset([pg.K_UP, pg.K_z]): motion.go_up_top_rotate_anticlockwise,
-            frozenset([pg.K_DOWN, pg.K_z]): motion.go_down_top_rotate_anticlockwise,
-            frozenset([pg.K_LEFT, pg.K_z]): motion.go_left_top_rotate_anticlockwise,
-            frozenset([pg.K_RIGHT, pg.K_z]): motion.go_right_top_rotate_anticlockwise,
-            frozenset([pg.K_UP, pg.K_LEFT, pg.K_z]): motion.go_up_left_top_rotate_anticlockwise,
-            frozenset([pg.K_UP, pg.K_RIGHT, pg.K_z]): motion.go_up_right_top_rotate_anticlockwise,
-            frozenset([pg.K_DOWN, pg.K_LEFT, pg.K_z]): motion.go_down_left_top_rotate_anticlockwise,
-            frozenset([pg.K_DOWN, pg.K_RIGHT, pg.K_z]): motion.go_down_right_top_rotate_anticlockwise,
-
-            frozenset([pg.K_UP, pg.K_c]): motion.go_up_top_rotate_clockwise,
-            frozenset([pg.K_DOWN, pg.K_c]): motion.go_down_top_rotate_clockwise,
-            frozenset([pg.K_LEFT, pg.K_c]): motion.go_left_top_rotate_clockwise,
-            frozenset([pg.K_RIGHT, pg.K_c]): motion.go_right_top_rotate_clockwise,
-            frozenset([pg.K_UP, pg.K_LEFT, pg.K_c]): motion.go_up_left_top_rotate_clockwise,
-            frozenset([pg.K_UP, pg.K_RIGHT, pg.K_c]): motion.go_up_right_top_rotate_clockwise,
-            frozenset([pg.K_DOWN, pg.K_LEFT, pg.K_c]): motion.go_down_left_top_rotate_clockwise,
-            frozenset([pg.K_DOWN, pg.K_RIGHT, pg.K_c]): motion.go_down_right_top_rotate_clockwise,
-
-            frozenset([pg.K_UP, pg.K_w]): motion.go_up_pitch_up,
-            frozenset([pg.K_DOWN, pg.K_w]): motion.go_down_pitch_up,
-            frozenset([pg.K_LEFT, pg.K_w]): motion.go_left_pitch_up,
-            frozenset([pg.K_RIGHT, pg.K_w]): motion.go_right_pitch_up,
-            frozenset([pg.K_UP, pg.K_LEFT, pg.K_w]): motion.go_up_left_pitch_up,
-            frozenset([pg.K_UP, pg.K_RIGHT, pg.K_w]): motion.go_up_right_pitch_up,
-            frozenset([pg.K_DOWN, pg.K_LEFT, pg.K_w]): motion.go_down_left_pitch_up,
-            frozenset([pg.K_DOWN, pg.K_RIGHT, pg.K_w]): motion.go_down_right_pitch_up,
-
-            frozenset([pg.K_UP, pg.K_x]): motion.go_up_pitch_down,
-            frozenset([pg.K_DOWN, pg.K_x]): motion.go_down_pitch_down,
-            frozenset([pg.K_LEFT, pg.K_x]): motion.go_left_pitch_down,
-            frozenset([pg.K_RIGHT, pg.K_x]): motion.go_right_pitch_down,
-            frozenset([pg.K_UP, pg.K_LEFT, pg.K_x]): motion.go_up_left_pitch_down,
-            frozenset([pg.K_UP, pg.K_RIGHT, pg.K_x]): motion.go_up_right_pitch_down,
-            frozenset([pg.K_DOWN, pg.K_LEFT, pg.K_x]): motion.go_down_left_pitch_down,
-            frozenset([pg.K_DOWN, pg.K_RIGHT, pg.K_x]): motion.go_down_right_pitch_down,
-        }
-
-        current_combo = frozenset(motion_keys)
-        if current_combo in multi_key_motion_map:
-            simulator.motion_manager.set_motion(
-                entity=simulator.selected_entity,
-                motion_func=multi_key_motion_map[current_combo]
-            )
-            return True
-
-        return False
-
-    def do_single_motion_key(self, motion_keys, simulator):
-        motion = simulator.motion_manager.motion
-
-        single_key_motion_map = {
-            pg.K_UP: motion.go_up,
-            pg.K_DOWN: motion.go_down,
-            pg.K_LEFT: motion.go_left,
-            pg.K_RIGHT: motion.go_right,
-            pg.K_a: motion.rotate_anticlockwise,
-            pg.K_d: motion.rotate_clockwise,
-            pg.K_z: motion.top_rotate_anticlockwise,
-            pg.K_c: motion.top_rotate_clockwise,
-            pg.K_w: motion.pitch_up,
-            pg.K_x: motion.pitch_down,
-            pg.K_g: motion.ascend,
-            pg.K_b: motion.descend,
-            pg.K_KP1: motion.up_down_osc,
-            pg.K_KP2: motion.left_right_osc,
-            pg.K_KP3: motion.diag_osc,
-            pg.K_KP4: motion.up_down_osc_rotate,
-            pg.K_KP5: motion.left_right_osc_rotate,
-            pg.K_KP6: motion.diag_osc_rotate
-        }
-
-        for key in self.MOTION_KEY_LIST:
-            if key in motion_keys:
-                motion_func = single_key_motion_map.get(key)
-                if motion_func:
-                    simulator.motion_manager.set_motion(
-                        entity=simulator.selected_entity,
-                        motion_func=motion_func
-                    )
-                break
-
-
-
-
-
-
+        # 3. 将构建好的集合应用给选中的实体
+        self.simulator.motion_manager.set_motion_func_set(entity, curr_motions)
 
 
 

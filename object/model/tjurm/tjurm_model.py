@@ -1,3 +1,6 @@
+import math
+import time
+
 import numpy as np
 
 from object.model.tjurm.data_and_utils.config import TJURMConfig
@@ -33,6 +36,7 @@ class TJURMModel:
 
         self.flag_antitop = False
         self.flag_center = False
+        self.flag_str = ""
 
         self.last_armor_id = None
         self.armor_count = 0
@@ -47,6 +51,7 @@ class TJURMModel:
             obsrv_armor.world_pos[2],
             obsrv_armor.world_rpy[2]
         ])
+        t = t
 
         self.track_queue.push(pose, t)
 
@@ -84,11 +89,19 @@ class TJURMModel:
             if self.flag_center:
                 # 中心模式
                 pred_armor_pos = self.antitop.get_pred_waiting_mode(fly_delay + self.rotate_delay)
+                self.flag_str = "antitop waiting"
+                # print("anti-top center")
             else:
                 # 装甲板模式
                 pred_armor_pos = self.antitop.get_pred_locking_mode(fly_delay + self.rotate_delay)
+                self.flag_str = "antitop locking"
+                # print("anti-top armor")
 
             pred_robot_pos = self.antitop.get_pred_robot_pos(fly_delay + self.rotate_delay)
+        else:
+            self.flag_str = "trackqueue"
+            # print("track_queue")
+            pass
 
         pred_pos.append(pred_robot_pos)
         pred_pos.append(pred_armor_pos)

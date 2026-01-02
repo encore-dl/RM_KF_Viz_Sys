@@ -19,7 +19,7 @@ class Color:
     CYAN = (0, 255, 255)
 
 
-WORLD_SCALE = 200
+WORLD_SCALE = 100
 
 PI = math.pi
 
@@ -109,7 +109,6 @@ class VisualizationManager:
                     self.main_screen_center,
                     self.world_scale
                 )
-                print(pred_center_main_screen_pos)
                 pg.draw.circle(self.screen, Color.RED, pred_center_main_screen_pos, 6)
 
             if len(tracker_info.pred_pos) > 1:
@@ -268,27 +267,30 @@ class VisualizationManager:
         def entry_append(text_, color_):
             texts_colors.append((text_, color_))
 
-        for true_robot in true_robots:
-            entry_append(
-                f"true robot pos: {', '.join(f'{x:.3f}' for x in true_robot.world_pos)}",
-                Color.WHITE
-            )
-            for armor in true_robot.armors:
-                entry_append(
-                    f"true armor pos: {', '.join(f'{x:.3f}' for x in armor.world_pos)}",
-                    Color.GREEN
-                )
-
-        for obsrv_armor in obsrv_armors:
-            entry_append(
-                f"obsrv armor pos: {', '.join(f'{x:.3f}' for x in obsrv_armor.world_pos)}",
-                Color.WHITE
-            )
-        if len(obsrv_armors) == 1:
-            entry_append(
-                f"padding",
-                Color.WHITE
-            )
+        # for true_robot in true_robots:
+        #     entry_append(
+        #         f"true robot pos: {', '.join(f'{x:.3f}' for x in true_robot.world_pos)}",
+        #         Color.CYAN
+        #     )
+        #     for armor in true_robot.armors:
+        #         entry_append(
+        #             f"true armor pos: {', '.join(f'{x:.3f}' for x in armor.world_pos)}",
+        #             Color.GREEN
+        #         )
+        #         entry_append(
+        #             f"true armor rpy: {', '.join(f'{(x+math.pi)/(2*math.pi):.3f}' for x in armor.world_rpy)}",
+        #             Color.CYAN
+        #         )
+        # # for obsrv_armor in obsrv_armors:
+        # #     entry_append(
+        # #         f"obsrv armor rpy: {', '.join(f'{x*(2/math.pi)+(1/2):.3f}' for x in obsrv_armor.world_rpy)}",
+        # #         Color.WHITE
+        # #     )
+        # if len(obsrv_armors) == 1:
+        #     entry_append(
+        #         f"padding",
+        #         Color.WHITE
+        #     )
 
         if tracker_info is not None:
             entry_append(
@@ -296,28 +298,89 @@ class VisualizationManager:
                 Color.GREEN
             )
             entry_append(
-                f"pred robot pos: ({', '.join(f'{x:.3f}' for x in tracker_info.pred_pos[0])})" if tracker_info.pred_pos[0] is not None else "pred robot pos: None",
-                Color.WHITE
+                f"flag: {tracker_info.flag_str}",
+                Color.CYAN
             )
-            if len(tracker_info.pred_pos) > 1:
-                for i in range(1, len(tracker_info.pred_pos)):
-                    entry_append(
-                        f"pred armor pos: ({tracker_info.pred_pos[i][0]:.3f}, {tracker_info.pred_pos[i][1]:.3f}, {tracker_info.pred_pos[i][2]:.3f})",
-                        Color.GREEN
-                    )
+            # entry_append(
+            #     f"pred robot pos: ({', '.join(f'{x:.3f}' for x in tracker_info.pred_pos[0])})" if tracker_info.pred_pos[0] is not None else "pred robot pos: None",
+            #     Color.WHITE
+            # )
+            # if len(tracker_info.pred_pos) > 1:
+            #     for i in range(1, len(tracker_info.pred_pos)):
+            #         entry_append(
+            #             f"pred armor pos: ({tracker_info.pred_pos[i][0]:.3f}, {tracker_info.pred_pos[i][1]:.3f}, {tracker_info.pred_pos[i][2]:.3f})",
+            #             Color.GREEN
+            #         )
             if len(tracker_info.state_vecs) == 3:
+                # entry_append(
+                #     f"main model x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[0])})",
+                #     Color.WHITE
+                # )
                 entry_append(
-                    f"main model x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[0])})",
-                    Color.WHITE
+                    f"main model x: {tracker_info.state_vecs[0][0]:.3f}",
+                    Color.CYAN
                 )
+                entry_append(
+                    f"main model y: {tracker_info.state_vecs[0][1]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model z: {tracker_info.state_vecs[0][2]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model v: {tracker_info.state_vecs[0][3]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model vz: {tracker_info.state_vecs[0][4]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model angle: {tracker_info.state_vecs[0][5]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model w: {tracker_info.state_vecs[0][6]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model a: {tracker_info.state_vecs[0][7]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model theta: {tracker_info.state_vecs[0][8]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model omega: {tracker_info.state_vecs[0][9]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model beta: {tracker_info.state_vecs[0][10]:.3f}",
+                    Color.CYAN
+                )
+                entry_append(
+                    f"main model r: {tracker_info.state_vecs[0][11]:.3f}",
+                    Color.CYAN
+                )
+
                 entry_append(
                     f"center model x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[1])})",
                     Color.GREEN
                 )
                 entry_append(
-                    f"omega model x: ({', '.join(f'{(x):.3f}' for x in tracker_info.state_vecs[2])})",
+                    f"omega model x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[2])})",
                     Color.WHITE
                 )
+                # entry_append(
+                #     f"main model r: {tracker_info.state_vecs[0][11]}",
+                #     Color.CYAN
+                # )
+                # entry_append(
+                #     f"main model beta: {tracker_info.state_vecs[0][10]}",
+                #     Color.CYAN
+                # )
             entry_append(
                 f"fps: {tracker_info.fps:.3f}",
                 Color.GREEN

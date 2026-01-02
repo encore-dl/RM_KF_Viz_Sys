@@ -13,20 +13,18 @@ class TJURMConfig:
     track_fire_high_delay: float = 0.02
 
     # Antitop参数
-    antitop_min_r: float = 0.15
-    antitop_max_r: float = 0.4
+    antitop_min_r: float = 0.
+    antitop_max_r: float = 5
     antitop_armor_num: int = 4
-    antitop_fire_retention: float = 1000.0
+    antitop_fire_retention: float = 5.0
     antitop_fire_update: int = 100
-    antitop_fire_delay: float = 0.5
-    antitop_fire_armor_angle: float = 0.5
-    antitop_fire_center_angle: float = 0.2
+    antitop_fire_delay: float = 1.
 
     # 切换阈值
-    track_to_antitop: float = 1.0
+    track_to_antitop: float = 1.
     antitop_to_track: float = 0.6
-    armor_to_center: float = 0.7
-    center_to_armor: float = 0.6
+    armor_to_center: float = 5.
+    center_to_armor: float = 7.
 
     slide_integrator = SlideIntegrator(2000, 2.0)
 

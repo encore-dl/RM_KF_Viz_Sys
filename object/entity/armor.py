@@ -10,9 +10,12 @@ class Armor:
 
         self.world_pos = np.array([0., 0., 0.])  # 世界坐标
         self.world_vel = np.array([0., 0., 0.])  # 世界速度
+        self.world_acc = np.array([0., 0., 0.])  # 世界加速度
         self.world_tpd = np.array([0., 0., 0.])  # 世界球坐标
         self.world_rpy = np.array([0., 0., 0.])  # 世界朝向角
         self.world_omg = np.array([0., 0., 0.])  # 世界角速度
+        self.world_alp = np.array([0., 0., 0.])  # 世界角加速度
         self.radius = 0  # 绕车体中心旋转半径
+
 
 

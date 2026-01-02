@@ -11,7 +11,13 @@ class CameraManager:
 
         self.camera = Camera(
             world_pos=np.array([0., 0., 0.15]),
-            fov=60,
-            max_range=3,
+            fov=360,
+            max_range=10,
             orient=np.array([0., 0., 0.])
         )
+
+    def switch_auto_aiming(self):
+        print('kk9')
+        self.camera.auto_aiming = not self.camera.auto_aiming
+
+

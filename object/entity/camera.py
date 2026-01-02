@@ -8,9 +8,11 @@ class Camera:
     def __init__(self, world_pos=np.array([0., 0., 0.]), fov=60, max_range=10, orient=np.array([0., 0., 0.])):
         self.world_pos = world_pos
         self.world_vel = np.array([0., 0., 0.])
+        self.world_acc = np.array([0., 0., 0.])
         self.world_tpd = pos_to_tpd(world_pos)
         self.world_rpy = orient
         self.world_omg = np.array([0., 0., 0.])
+        self.world_alp = np.array([0., 0., 0.])
 
         self.fov = math.radians(fov)  # field of view 视场角 弧度制
         self.max_range = max_range  # 相机最远识别范围/距离
@@ -98,5 +100,5 @@ class Camera:
 
         dot_product = np.dot(robot_camera_univec, robot_armor_univec)
 
-        return 0.5 <= dot_product <= 1  # 内积在 [√3/2, 1] 之间算看见
+        return math.sqrt(2)/2 <= dot_product <= 1  # 内积在 [√3/2, 1] 之间算看见
 

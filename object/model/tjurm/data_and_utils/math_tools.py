@@ -46,7 +46,6 @@ def get_angle_trans(armor_count, target_angle: float, src_angle: float, refer_an
         refer_angle += (2 * math.pi) / armor_count
         dst_angle += (2 * math.pi) / armor_count
 
-    # 归一化到[-pi, pi]
     return limit_rad(dst_angle)
 
 
@@ -77,3 +76,4 @@ def get_distance(pose1, pose2):
     dy = pose1[1] - pose2[1]
     dz = pose1[2] - pose2[2]
     return math.sqrt(dx * dx + dy * dy + dz * dz)
+

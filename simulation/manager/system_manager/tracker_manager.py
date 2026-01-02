@@ -1,6 +1,7 @@
 import threading
 import queue
 import time
+import traceback
 
 
 class TrackerManager:
@@ -61,6 +62,7 @@ class TrackerManager:
                     self._tracker.is_tracked,
                     self._tracker.pred_pos,
                     self._tracker.status,
+                    self._tracker.flag_str,
                     self.fps,
                     time.time()  # output 的时间戳
                 )
@@ -74,6 +76,7 @@ class TrackerManager:
                 continue
             except Exception as e:
                 print(f"Tracker thread error: {e}")
+                print(f"Tracker thread error at line {traceback.format_exc()}")
                 break
 
             thread_dt = time.time() - thread_start_t

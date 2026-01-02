@@ -57,7 +57,7 @@ class Antitop:
 
         # 状态变量
         self.r = [0.25, 0.25]  # 两个位姿的半径
-        self.z = [0.0, 0.0]  # 两个位姿的高度
+        self.z = [0.2, 0.2]  # 两个位姿的高度
         self.toggle = 0  # 切换标签
         self.update_num = 0  # 更新次数
 
@@ -106,9 +106,9 @@ class Antitop:
         # self.set_omega_matrix_q(0.005, 0.3, 1.0)
         # self.set_omega_matrix_r(0.00005)
 
-        self.set_matrix_q(0.01, 0.01, 0.01, 0.05, 0.005, 0.05,
-                          0.005, 0.005, 0.02, 0.04, 0.06, 0.001)
-        self.set_matrix_r(0.1, 0.1, 0.1, 0.2)
+        self.set_matrix_q(10, 10, 10, 0.05, 0.005, 0.05,
+                          0.005, 0.005, 0.02, 40, 600, 8000)
+        self.set_matrix_r(1, 1, 0.01, 0.02)
         self.set_center_matrix_q(0.001, 0.001, 0.01, 0.01, 0.1, 0.1)
         self.set_center_matrix_r(1.0, 1.0)
         self.set_omega_matrix_q(1.0, 1.0, 1.0)
@@ -418,11 +418,6 @@ class Antitop:
                     self.center_model.x[2] * np.sin(self.center_model.x[3]) * dt +
                     0.5 * self.center_model.x[5] * np.sin(self.center_model.x[3]) * dt * dt)
 
-        # 角度预测
-        # ekf_theta = (self.main_model.x[8] +
-        #              self.main_model.x[9] * dt +
-        #              0.5 * self.main_model.x[10] * dt * dt)
-
         kf_theta = (self.omega_model.x[0] +
                     self.omega_model.x[1] * dt +
                     0.5 * self.omega_model.x[2] * dt * dt)
@@ -526,43 +521,3 @@ class Antitop:
     def get_omega(self):
         if self.omega_model is not None:
             return self.omega_model.x[1]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

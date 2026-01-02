@@ -34,10 +34,12 @@ class Robot:
     def __init__(self, robot_type):
         self.armors = []
 
-        self.world_pos = np.array([0., 0., 0.])
+        self.world_pos = np.array([1., 0., 0.])
         self.world_vel = np.array([0., 0., 0.])
+        self.world_acc = np.array([0., 0., 0.])
         self.world_tpd = np.array([0., 0., 0.])
         self.world_rpy = np.array([0., 0., 0.])
+        self.world_alp = np.array([0., 0., 0.])
         self.world_omg = np.array([0., 0., 0.])
 
         self.robot_type = robot_type
@@ -81,10 +83,10 @@ class Robot:
                 if i % 2 == 0:  # 前后装甲板
                     if i == 0:  # 前装甲
                         armor.world_pos[0] = self.world_pos[0] + self.length / 2
-                        armor.world_rpy[2] = 0.
+                        armor.world_rpy[2] = math.pi
                     elif i == 2:  # 后装甲
                         armor.world_pos[0] = self.world_pos[0] - self.length / 2
-                        armor.world_rpy[2] = math.pi
+                        armor.world_rpy[2] = 0.
                     armor.world_pos[1] = self.world_pos[1]
                     armor.world_pos[2] = self.low_height
                     armor.radius = self.length / 2
@@ -92,19 +94,19 @@ class Robot:
                     armor.world_pos[0] = self.world_pos[0]
                     if i == 1:  # 右装甲
                         armor.world_pos[1] = self.world_pos[1] + self.width / 2
-                        armor.world_rpy[2] = math.pi / 2
+                        armor.world_rpy[2] = -math.pi / 2
                     elif i == 3:  # 左装甲
                         armor.world_pos[1] = self.world_pos[1] - self.width / 2
-                        armor.world_rpy[2] = -math.pi / 2
+                        armor.world_rpy[2] = math.pi / 2
                     armor.world_pos[2] = self.high_height
                     armor.radius = self.width / 2
             elif self.armor_count == 2:  # Sentry是双装甲板，设置为low height，id为 0，1
                 if i == 0:
                     armor.world_pos[0] = self.world_pos[0] + self.length / 2
-                    armor.world_rpy[2] = 0.
+                    armor.world_rpy[2] = math.pi
                 elif i == 1:
                     armor.world_pos[0] = self.world_pos[0] - self.length / 2
-                    armor.world_rpy[2] = math.pi
+                    armor.world_rpy[2] = 0.
                 armor.world_pos[1] = self.world_pos[1]
                 armor.world_pos[2] = self.low_height
                 armor.radius = self.length / 2
@@ -117,4 +119,7 @@ class Robot:
         self.world_tpd = pos_to_tpd(self.world_pos)
 
 
+class ObsrvRobots:
+    def __init__(self):
+        self.obsrv_armors = []
 

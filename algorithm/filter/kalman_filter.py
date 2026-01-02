@@ -43,7 +43,7 @@ class KalmanFilter:
 
     def update(self, z, H, R):
         S = H @ self.P @ H.T + R
-        K = self.P @ H.T @ np.linalg.inv(S)
+        K = self.P @ H.T @ np.linalg.pinv(S)
 
         self.x = self.x + K @ (z - H @ self.x)
         I = np.eye(self.state_dim)

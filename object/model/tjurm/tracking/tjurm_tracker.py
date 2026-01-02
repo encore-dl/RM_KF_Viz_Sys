@@ -27,6 +27,7 @@ class TJURMTracker:
         self.is_tracked = False
         self.pred_pos = []
         self.status = None
+        self.flag_str = ""
 
     def track(self, obsrv_armors, dt, t_stamp):
         for obsrv_armor in obsrv_armors:
@@ -36,12 +37,15 @@ class TJURMTracker:
             tracked_robot.model.update()
 
         self.is_tracked = True
-        self.pred_pos = self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]].model.get_pred_pos()
+
+        tracked_robot_now = self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]]
+        self.pred_pos = tracked_robot_now.model.get_pred_pos()
         self.status = [
-            self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]].model.antitop.main_model.x,
-            self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]].model.antitop.center_model.x,
-            self.tracked_robots[self.robot_type_map[obsrv_armors[0].robot_type]].model.antitop.omega_model.x,
+            tracked_robot_now.model.antitop.main_model.x,
+            tracked_robot_now.model.antitop.center_model.x,
+            tracked_robot_now.model.antitop.omega_model.x,
         ]
+        self.flag_str = tracked_robot_now.model.flag_str
 
         return True
 

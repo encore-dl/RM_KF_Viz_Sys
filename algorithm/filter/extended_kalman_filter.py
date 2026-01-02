@@ -94,7 +94,7 @@ class ExtendedKalmanFilter:
 
         # 计算卡尔曼增益
         S = H @ self.P @ H.T + R
-        K = self.P @ H.T @ np.linalg.inv(S)
+        K = self.P @ H.T @ np.linalg.pinv(S)
 
         # 更新状态
         self.x = self.x_add_func(self.x, K @ y)
@@ -106,7 +106,7 @@ class ExtendedKalmanFilter:
 
     def _evaluate_performance(self, y, S, x_true=None):
         # NIS计算
-        nis = y.T @ np.linalg.inv(S) @ y
+        nis = y.T @ np.linalg.pinv(S) @ y
         nis_fail = nis > self.nis_threshold
 
         self.recent_nis_failures.append(nis_fail)
