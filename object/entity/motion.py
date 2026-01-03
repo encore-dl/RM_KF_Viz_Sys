@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class MotionConfig:
-    T_STEP = 3.0  # 加速度/速度增量
+    T_STEP = 2.3  # 加速度/速度增量
     R_STEP_SLOW = 2.0
     R_STEP_FAST = 10.0
 
@@ -36,19 +36,19 @@ class Motion:
 
     @staticmethod
     def go_left(state, t, dt):
-        state.tar_vel[0] -= MotionConfig.T_STEP
-
-    @staticmethod
-    def go_right(state, t, dt):
-        state.tar_vel[0] += MotionConfig.T_STEP
-
-    @staticmethod
-    def go_up(state, t, dt):
         state.tar_vel[1] += MotionConfig.T_STEP
 
     @staticmethod
-    def go_down(state, t, dt):
+    def go_right(state, t, dt):
         state.tar_vel[1] -= MotionConfig.T_STEP
+
+    @staticmethod
+    def go_up(state, t, dt):
+        state.tar_vel[0] += MotionConfig.T_STEP
+
+    @staticmethod
+    def go_down(state, t, dt):
+        state.tar_vel[0] -= MotionConfig.T_STEP
 
     @staticmethod
     def ascend(state, t, dt):
@@ -77,23 +77,10 @@ class Motion:
         state.tar_omg[2] -= MotionConfig.R_STEP_FAST
 
     @staticmethod
-    def pitch_up(state, t, dt):
-        state.tar_omg[1] -= 0.5
-
-    @staticmethod
     def pitch_down(state, t, dt):
         state.tar_omg[1] += 0.5
 
     @staticmethod
-    def dec_vel(state, t, dt):
-        if np.linalg.norm(state.vel) < 0.1:
-            state.vel[:] = 0
-        else:
-            state.vel *= (1.0 - 8.6 * dt)
+    def pitch_up(state, t, dt):
+        state.tar_omg[1] -= 0.5
 
-    @staticmethod
-    def dec_omg(state, t, dt):
-        if np.linalg.norm(state.omg) < 0.1:
-            state.omg[:] = 0
-        else:
-            state.omg *= (1.0 - 9 * dt)

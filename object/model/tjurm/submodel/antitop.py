@@ -3,8 +3,8 @@ import math
 import time
 from typing import Optional
 
-from algorithm.filter.kalman_filter import KalmanFilter
-from algorithm.filter.extended_kalman_filter import ExtendedKalmanFilter
+from algorithm.kalman_filter.kalman_filter import KalmanFilter
+from algorithm.kalman_filter.extended_kalman_filter import ExtendedKalmanFilter
 
 from object.model.tjurm.data_and_utils.slide_integrator import SlideIntegrator
 from object.model.tjurm.data_and_utils.slide_weight_avg import SlideWeightedAvg
@@ -106,8 +106,8 @@ class Antitop:
         # self.set_omega_matrix_q(0.005, 0.3, 1.0)
         # self.set_omega_matrix_r(0.00005)
 
-        self.set_matrix_q(10, 10, 10, 0.05, 0.005, 0.05,
-                          0.005, 0.005, 0.02, 40, 600, 8000)
+        self.set_matrix_q(0.01, 0.01, 0.01, 0.05, 0.005, 0.05,
+                          0.005, 0.005, 0.02, 0.04, 0.06, 0.001)
         self.set_matrix_r(1, 1, 0.01, 0.02)
         self.set_center_matrix_q(0.001, 0.001, 0.01, 0.01, 0.1, 0.1)
         self.set_center_matrix_r(1.0, 1.0)

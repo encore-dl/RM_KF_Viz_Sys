@@ -13,7 +13,7 @@ class CameraManager:
             world_pos=np.array([0., 0., 0.15]),
             fov=360,
             max_range=10,
-            orient=np.array([0., 0., 0.])
+            world_rpy=np.array([0., 0., 0.])
         )
 
     def switch_auto_aiming(self):

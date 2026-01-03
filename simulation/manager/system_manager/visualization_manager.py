@@ -4,7 +4,7 @@ import math
 
 from dataclasses import dataclass
 
-from utils.math_tool import world_to_main_screen
+from utils.math_tool import world_to_main_screen, world_to_camera_screen
 
 
 @dataclass
@@ -193,34 +193,40 @@ class VisualizationManager:
         pg.draw.rect(self.screen, (5, 5, 5), camera_screen_rect)
         pg.draw.rect(self.screen, Color.WHITE, camera_screen_rect, 2)
 
+        camera_screen_resolution = (self.camera_screen_width, self.camera_screen_height)
+
         # 画真实装甲板
         # 也就是真实数据 true data
         for robot in true_robots:
             # 车，装甲板的可视化
-            robot_camera_screen_pos = camera.world_to_pixel(
-                robot.world_pos,
-                self.camera_screen_center,
-                (self.camera_screen_width, self.camera_screen_height)
+            robot_camera_screen_pos = world_to_camera_screen(
+                world_pos=robot.world_pos,
+                camera=camera,
+                camera_screen_center=self.camera_screen_center,
+                resolution=camera_screen_resolution
             )
-            if robot_camera_screen_pos is not None:
+            if robot_camera_screen_pos:
                 pg.draw.circle(self.screen, Color.BLUE, robot_camera_screen_pos, 6)
 
-            for armor in robot.armors:
-                armor_camera_screen_pos = camera.world_to_pixel(
-                    armor.world_pos,
-                    self.camera_screen_center,
-                    (self.camera_screen_width, self.camera_screen_height)
-                )
-                if armor_camera_screen_pos is not None:
-                    pg.draw.circle(self.screen, Color.WHITE, armor_camera_screen_pos, 4)
+            if robot.armors:
+                for armor in robot.armors:
+                    armor_camera_screen_pos = world_to_camera_screen(
+                        world_pos=armor.world_pos,
+                        camera=camera,
+                        camera_screen_center=self.camera_screen_center,
+                        resolution=camera_screen_resolution
+                    )
+                    if armor_camera_screen_pos is not None:
+                        pg.draw.circle(self.screen, Color.WHITE, armor_camera_screen_pos, 4)
 
         # 画 加了高斯噪声的装甲板
         # 也就是观测数据 obsrv
         for obsrv_armor in obsrv_armors:
-            obsrv_armor_camera_screen_pos = camera.world_to_pixel(
-                obsrv_armor.world_pos,
-                self.camera_screen_center,
-                (self.camera_screen_width, self.camera_screen_height)
+            obsrv_armor_camera_screen_pos = world_to_camera_screen(
+                world_pos=obsrv_armor.world_pos,
+                camera=camera,
+                camera_screen_center=self.camera_screen_center,
+                resolution=camera_screen_resolution
             )
             if obsrv_armor_camera_screen_pos is not None:
                 pg.draw.circle(self.screen, Color.YELLOW, obsrv_armor_camera_screen_pos, 5)
@@ -229,14 +235,11 @@ class VisualizationManager:
         # 也就是 预测数据 pred
         if tracker_info is not None and tracker_info.is_tracked:
             if tracker_info.pred_pos[0] is not None:
-                pred_center_camera_screen_pos = camera.world_to_pixel(
-                    [
-                        tracker_info.pred_pos[0][0],
-                        tracker_info.pred_pos[0][1],
-                        tracker_info.pred_pos[0][2]
-                    ],
-                    self.camera_screen_center,
-                    (self.camera_screen_width, self.camera_screen_height)
+                pred_center_camera_screen_pos = world_to_camera_screen(
+                    world_pos=tracker_info.pred_pos[0],
+                    camera=camera,
+                    camera_screen_center=self.camera_screen_center,
+                    resolution=camera_screen_resolution
                 )
                 if pred_center_camera_screen_pos is not None:
                     pg.draw.circle(self.screen, Color.RED, pred_center_camera_screen_pos, 6)
@@ -244,10 +247,11 @@ class VisualizationManager:
             if len(tracker_info.pred_pos) > 1:
                 for armor_id in range(len(tracker_info.pred_pos[1:])):
                     pred_armor_pos = tracker_info.pred_pos[armor_id+1]
-                    pred_armor_camera_screen_pos = camera.world_to_pixel(
-                        pred_armor_pos,
-                        self.camera_screen_center,
-                        (self.camera_screen_width, self.camera_screen_height)
+                    pred_armor_camera_screen_pos = world_to_camera_screen(
+                        world_pos=pred_armor_pos,
+                        camera=camera,
+                        camera_screen_center=self.camera_screen_center,
+                        resolution=camera_screen_resolution
                     )
                     if pred_armor_camera_screen_pos is not None:
                         pg.draw.circle(self.screen, Color.PURPLE, pred_armor_camera_screen_pos, 4)

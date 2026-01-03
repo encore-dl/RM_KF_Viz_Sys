@@ -3,7 +3,7 @@ import time
 from typing import Optional, Any
 from threading import Lock
 
-from algorithm.filter.extended_kalman_filter import ExtendedKalmanFilter
+from algorithm.kalman_filter.extended_kalman_filter import ExtendedKalmanFilter
 from object.model.tjurm.data_and_utils.math_tools import (
     limit_rad,
     get_distance

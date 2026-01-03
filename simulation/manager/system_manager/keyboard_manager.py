@@ -31,6 +31,7 @@ class KeyboardManager:
         # 功能键映射
         self.spec_key_func_map = {
             pg.K_ESCAPE: lambda: 'escape',
+            pg.K_r: lambda: 'reset',
             pg.K_1: lambda: self.simulator.select_entity('robot', 0),
             pg.K_2: lambda: self.simulator.select_entity('robot', 1),  # 示例
             pg.K_9: lambda: self.simulator.select_entity('camera'),
@@ -39,16 +40,23 @@ class KeyboardManager:
         }
 
     def handle_event(self, event):
+        result = None
+
         if event.type == pg.KEYDOWN:
             self.pressed_keys.add(event.key)
 
-            self.handle_combo_key(event.key)
-            self.handle_single_key(event.key)
+            combo_result = self.handle_combo_key(event.key)
+            if combo_result:
+                result = combo_result
+            else:
+                result = self.handle_single_key(event.key)
         elif event.type == pg.KEYUP:
             if event.key in self.pressed_keys:
                 self.pressed_keys.remove(event.key)
 
         self.handle_motion_key()
+
+        return result
 
     def handle_combo_key(self, key):
         # 前面处理combo键
@@ -56,20 +64,23 @@ class KeyboardManager:
             if pg.K_0 <= key <= pg.K_9:
                 robot_id = key - pg.K_0
                 self.simulator.robot_manager.delete_robot(robot_id)
-                return
+                return 'combo'
 
         if pg.K_RETURN in self.pressed_keys:
             if key == pg.K_1:
                 self.simulator.robot_manager.create_robot(RobotType.Hero)
-                return
+                return 'combo'
             elif key == pg.K_2:
                 self.simulator.robot_manager.create_robot(RobotType.Sentry)
-                return
+                return 'combo'
+
+        return None
 
     def handle_single_key(self, key):
         # 如果没有触发任何 Combo，再处理单键逻辑
         if key in self.spec_key_func_map:
-            self.spec_key_func_map[key]()
+            return self.spec_key_func_map[key]()
+        return None
 
     def handle_motion_key(self):
         # 对在 pressed_keys 中的 motion key 进行统一处理

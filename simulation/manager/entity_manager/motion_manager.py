@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 from object.entity.motion import Motion, MotionState, MotionConfig
-from utils.math_tool import pos_to_tpd, limit_rad, get_euler_rotate_matrix
+from utils.math_tool import pos_to_tpd, limit_rad, get_euler_rotation_matrix
 
 
 class MotionManager:
@@ -114,7 +114,7 @@ class MotionManager:
                 armor._relative_pos_to_body = armor.world_pos - robot.world_pos
             robot._armors_initialized = True
 
-        rotate_mat = get_euler_rotate_matrix(robot.world_rpy)
+        rotate_mat = get_euler_rotation_matrix(robot.world_rpy)
 
         for armor in robot.armors:
             # 核心逻辑：World = RobotWorld + Rot @ LocalOffset

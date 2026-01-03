@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 from object.entity.robot import RobotType
-from algorithm.filter.extended_kalman_filter import ExtendedKalmanFilter
+from algorithm.kalman_filter.extended_kalman_filter import ExtendedKalmanFilter
 from utils.math_tool import limit_rad, pos_to_tpd, pos_to_tpd_jacob
 
 

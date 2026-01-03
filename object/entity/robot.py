@@ -76,9 +76,6 @@ class Robot:
             armor.robot_type = self.robot_type
             armor.priority = self.priority
 
-            # 世界坐标系：x 前 y 右 z 上
-            # 逆时针为：y正 x正 y负 x负
-            # 方向角来看，是 x正时yaw = 0，顺时针为正
             if self.armor_count == 4:
                 if i % 2 == 0:  # 前后装甲板
                     if i == 0:  # 前装甲
