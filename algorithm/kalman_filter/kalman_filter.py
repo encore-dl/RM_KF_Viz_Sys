@@ -18,7 +18,7 @@ class KalmanFilter:
             self.x = np.zeros(self.state_dim)
 
         if self.state_dim is None:
-            print("KalmanFilter state_dim error")
+            print("KalmanFilter: state_dim error")
             raise ValueError
 
         # 初始化协方差矩阵
@@ -26,14 +26,14 @@ class KalmanFilter:
             self.P = P0.copy()
             # 验证维度一致性
             if self.P.shape != (self.state_dim, self.state_dim):
-                raise ValueError("P0 MISMATCH x0!")
+                raise ValueError("KalmanFilter: P0 MISMATCH x0!")
         else:
             self.P = np.eye(self.state_dim)
 
         # 验证x0和P0的维度一致性（如果两者都提供）
         if x0 is not None and P0 is not None:
             if len(x0) != P0.shape[0]:
-                raise ValueError("x0 MISMATCH P0!")
+                raise ValueError("KalmanFilter: x0 MISMATCH P0!")
 
         self.x_add_func = x_add_func if x_add_func else lambda a, b: a + b
 
@@ -41,11 +41,16 @@ class KalmanFilter:
         self.x = F @ self.x
         self.P = F @ self.P @ F.T + Q
 
-    def update(self, z, H, R):
+    def update(self, z, H, R, z_sub_func=None):
         S = H @ self.P @ H.T + R
         K = self.P @ H.T @ np.linalg.pinv(S)
 
-        self.x = self.x + K @ (z - H @ self.x)
+        if z_sub_func is not None:
+            y = z_sub_func(z, H @ self.x)
+        else:
+            y = z - H @ self.x
+
+        self.x = self.x + K @ y
         I = np.eye(self.state_dim)
         self.P = (I - K @ H) @ self.P @ (I - K @ H).T + K @ R @ K.T
 

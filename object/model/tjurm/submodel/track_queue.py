@@ -72,7 +72,7 @@ def tq_h_func(x: np.ndarray) -> np.ndarray:
     return x[:3]  # 观测x, y, z
 
 
-def tq_H_jacobian(x: np.ndarray) -> np.ndarray:
+def tq_H_jacob(x: np.ndarray) -> np.ndarray:
     """TrackQueue观测的雅可比矩阵"""
     H = np.zeros((3, 8))
     H[0, 0] = 1
@@ -81,7 +81,7 @@ def tq_H_jacobian(x: np.ndarray) -> np.ndarray:
     return H
 
 
-def tq_z_subtract(z_actual: np.ndarray, z_pred: np.ndarray) -> np.ndarray:
+def tq_z_sub(z_actual: np.ndarray, z_pred: np.ndarray) -> np.ndarray:
     """TrackQueue的观测残差计算"""
     return z_actual - z_pred
 
@@ -215,9 +215,9 @@ class TrackQueue:
                                          F_jacobian=F_func)
 
                 best_state.model.update(pose_3d, None, self.matrixR_,
-                                        z_subtract_func=tq_z_subtract,
+                                        z_sub_func=tq_z_sub,
                                         h_func=tq_h_func,
-                                        H_jacobian=tq_H_jacobian)
+                                        H_jacob=tq_H_jacob)
 
                 self.list_.append(best_state)
             else:
@@ -248,9 +248,9 @@ class TrackQueue:
 
                     # 更新
                     best_state.model.update(pose_3d, None, self.matrixR_,
-                                            z_subtract_func=tq_z_subtract,
+                                            z_sub_func=tq_z_sub,
                                             h_func=tq_h_func,
-                                            H_jacobian=tq_H_jacobian)
+                                            H_jacob=tq_H_jacob)
 
                     # 角度归一化
                     best_state.model.x[5] = limit_rad(best_state.model.x[5])

@@ -36,10 +36,9 @@ class Simulator:
         else:
             @dataclasses.dataclass
             class TrackerInfo:
-                is_tracked = output_data[0]
+                is_tracking = output_data[0]
                 pred_pos = output_data[1]
                 state_vecs = output_data[2]
-                flag_str = output_data[3]
                 fps = output_data[-2]
 
             tracker_info = TrackerInfo()

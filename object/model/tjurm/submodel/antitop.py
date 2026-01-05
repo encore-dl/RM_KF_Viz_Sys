@@ -42,7 +42,8 @@ class Antitop:
                  fire_interval: float = 0.05,
                  fire_high_delay: float = 0.02,
                  fire_query_resolution: float = 0.002,
-                 integrator: Optional[SlideIntegrator] = None):
+                 integrator: Optional[SlideIntegrator] = None
+                 ):
         """初始化"""
         # 参数配置
         self.r_min = r_min
@@ -62,9 +63,34 @@ class Antitop:
         self.update_num = 0  # 更新次数
 
         # 滤波器
-        self.main_model = ExtendedKalmanFilter(state_dim=12)  # 主EKF模型
-        self.center_model = ExtendedKalmanFilter(state_dim=6)  # 中心KF模型
-        self.omega_model = KalmanFilter(state_dim=3)  # 角速度KF模型
+        def main_add(a, b):
+            c = a + b
+            c[5] = limit_rad(c[5])
+            c[8] = limit_rad(c[8])
+            return c
+
+        def center_add(a, b):
+            c = a + b
+            c[3] = limit_rad(c[3])
+            return c
+
+        def omega_add(a, b):
+            c = a + b
+            c[0] = limit_rad(c[0])
+            return c
+
+        self.main_model = ExtendedKalmanFilter(
+            state_dim=12,
+            x_add_func=main_add
+        )  # 主EKF模型
+        self.center_model = ExtendedKalmanFilter(
+            state_dim=6,
+            x_add_func=center_add
+        )  # 中心KF模型
+        self.omega_model = KalmanFilter(
+            state_dim=3,
+            x_add_func=omega_add
+        )  # 角速度KF模型
 
         # 辅助类
         self.weighted_z = [SlideWeightedAvg(500), SlideWeightedAvg(500)]
@@ -226,7 +252,13 @@ class Antitop:
         # 更新
         H_omega = np.array([[1, 0, 0]])
         z_omega = np.array([theta])
-        self.omega_model.update(z_omega, H_omega, self.R_omega)
+
+        def z_sub_omega(z_actual, z_pred):
+            result = z_actual - z_pred
+            result[0] = safe_angle_sub(z_actual[0], z_pred[0])
+            return result
+
+        self.omega_model.update(z_omega, H_omega, self.R_omega, z_sub_omega)
 
         # ========== 主模型预测和更新 ==========
         if self.main_model:
@@ -256,10 +288,10 @@ class Antitop:
                 x_next[4] = x[4]
                 x_next[5] = x[5] + dt * x[6]
                 x_next[6] = x[6]
-                x_next[7] = x[7]
+                x_next[7] = x[7] * 0.9
                 x_next[8] = x[8] + dt * x[9] + 0.5 * dt * dt * x[10]
                 x_next[9] = x[9] + dt * x[10]
-                x_next[10] = x[10]
+                x_next[10] = x[10] * 0.9
                 x_next[11] = x[11]
                 return x_next
 
@@ -293,7 +325,7 @@ class Antitop:
                 y[3] = x[8]  # theta
                 return y
 
-            def H_jacobian_main(x):
+            def H_jacob_main(x):
                 H = np.zeros((4, 12))
                 H[0, 0] = 1  # dx_armor/dx
                 H[0, 8] = x[11] * np.sin(x[8])  # dx_armor/dtheta
@@ -307,7 +339,7 @@ class Antitop:
                 H[3, 8] = 1  # dtheta/dtheta
                 return H
 
-            def z_subtract(z_actual, z_pred):
+            def z_sub_main(z_actual, z_pred):
                 result = z_actual - z_pred
                 result[3] = safe_angle_sub(z_actual[3], z_pred[3])
                 return result
@@ -318,8 +350,8 @@ class Antitop:
                 H=None,
                 R=self.R_main,
                 h_func=h_func_main,
-                H_jacobian=H_jacobian_main,
-                z_subtract_func=z_subtract
+                H_jacob=H_jacob_main,
+                z_sub_func=z_sub_main
             )
 
             # 同步角速度
@@ -382,8 +414,8 @@ class Antitop:
                 H=H_center,
                 R=self.R_center,
                 h_func=None,
-                H_jacobian=None,
-                z_subtract_func=lambda a, b: a - b
+                H_jacob=None,
+                z_sub_func=lambda a, b: a - b
             )
 
             # 角度归一化

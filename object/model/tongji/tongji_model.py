@@ -160,14 +160,14 @@ class TongJiModel:
             armor.world_rpy[2]
         ])
 
-        def z_subtract(a, b):
+        def z_sub(a, b):
             c = a - b
             c[0] = limit_rad(c[0])  # yaw
             c[1] = limit_rad(c[1])  # pitch
             c[3] = limit_rad(c[3])  # agl
             return c
 
-        self._ekf.update(z=z, H=H, R=R, h_func=h_func, z_subtract_func=z_subtract)
+        self._ekf.update(z=z, H=H, R=R, h_func=h_func, z_sub_func=z_sub)
 
         # 同济这有一个 match armor 的操作 以及 记录装甲板旋转数
 

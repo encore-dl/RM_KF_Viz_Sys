@@ -34,7 +34,7 @@ class Robot:
     def __init__(self, robot_type):
         self.armors = []
 
-        self.world_pos = np.array([1., 0., 0.])
+        self.world_pos = np.array([0., 0., 0.])
         self.world_vel = np.array([0., 0., 0.])
         self.world_acc = np.array([0., 0., 0.])
         self.world_tpd = np.array([0., 0., 0.])

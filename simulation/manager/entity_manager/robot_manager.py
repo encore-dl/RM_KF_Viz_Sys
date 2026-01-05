@@ -7,7 +7,7 @@ import time
 from collections import deque
 
 from object.entity.robot import (Robot)
-from utils.math_tool import angle_sub, rad_to_ratio
+from utils.math_tool import safe_angle_sub, rad_to_ratio
 
 
 class RobotManager:

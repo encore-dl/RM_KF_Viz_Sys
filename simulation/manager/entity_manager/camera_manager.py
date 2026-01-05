@@ -17,7 +17,6 @@ class CameraManager:
         )
 
     def switch_auto_aiming(self):
-        print('kk9')
         self.camera.auto_aiming = not self.camera.auto_aiming
 
 

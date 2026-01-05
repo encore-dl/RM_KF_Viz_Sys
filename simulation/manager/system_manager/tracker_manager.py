@@ -59,10 +59,9 @@ class TrackerManager:
                 self._tracker.track(obsrv_armors, input_dt, input_t_stamp)  # 调用track
 
                 output_data = (
-                    self._tracker.is_tracked,
+                    self._tracker.is_tracking,
                     self._tracker.pred_pos,
-                    self._tracker.status,
-                    self._tracker.flag_str,
+                    self._tracker.state_vecs,
                     self.fps,
                     time.time()  # output 的时间戳
                 )

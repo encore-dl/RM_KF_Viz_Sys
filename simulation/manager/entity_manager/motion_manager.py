@@ -30,8 +30,6 @@ class MotionManager:
             cur_state.tar_vel = np.zeros(3)
             cur_state.tar_omg = np.zeros(3)
 
-            print(motion_funcs)
-
             # 应用所有运动函数（设置 tar 分量）
             for func in motion_funcs:
                 func(cur_state, t, dt)  # 如果加上t参运动，需修改此处
@@ -131,7 +129,8 @@ class MotionManager:
             armor.world_rpy = robot.world_rpy.copy()
             # 加上装甲板自身的安装角度 (假设均匀分布)
             angle_offset = (armor.armor_id * 2 * math.pi / robot.armor_count)
-            armor.world_rpy[2] = limit_rad(robot.world_rpy[2] + math.pi + angle_offset)
+            armor.world_rpy[2] = limit_rad(robot.world_rpy[2] + angle_offset)
+            # armor.world_rpy[2] = limit_rad(robot.world_rpy[2] + math.pi + angle_offset)
 
             armor.world_omg = robot.world_omg.copy()
             armor.world_tpd = pos_to_tpd(armor.world_pos)

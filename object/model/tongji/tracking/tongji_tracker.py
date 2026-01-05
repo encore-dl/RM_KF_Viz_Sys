@@ -9,7 +9,7 @@ class TongJiTracker:
         self.model = TongJiModel()
 
         self.tracked_robot = None
-        self.is_tracked = False
+        self.is_tracking = False
 
         self.pred_pos = []  # 顺序是：0 车体中心， 1 2 3 4 装甲板中心
 
@@ -25,7 +25,7 @@ class TongJiTracker:
         #     # 击打优先级排序
         #     obsrv_armors.sort(key=lambda a: a.priority)
 
-        self.is_tracked = False
+        self.is_tracking = False
         if not obsrv_armors or len(obsrv_armors) == 0:
             self.state = MachineState.lost
             return
@@ -41,30 +41,30 @@ class TongJiTracker:
 
         self.pred_pos = [self.model.get_pred_robot_pos(), *self.model.get_pred_armor_pos()]
 
-        # self.is_tracked = True
+        # self.is_tracking = True
         # return
 
         # 已经发散
         if self.state == MachineState.lost:
-            self.is_tracked = False
+            self.is_tracking = False
             return
 
         # 检测是否发散
         if self.state != MachineState.lost and self.model.diverged():
             print("model diverged!")
             self.state = MachineState.lost
-            self.is_tracked = False
+            self.is_tracking = False
             return
 
         # 检查收敛状况
         if self.state != MachineState.lost and self.model.nis_failed():
             print("bad convergence!")
             self.state = MachineState.lost
-            self.is_tracked = False
+            self.is_tracking = False
             return
 
         if self.state == MachineState.tracking and not self.model.diverged():
-            self.is_tracked = True
+            self.is_tracking = True
             return
 
     def init_model(self, obsrv_armor=None):

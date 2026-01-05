@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from collections import deque
 
@@ -19,7 +21,7 @@ class ExtendedKalmanFilter:
             self.x = np.zeros(self.state_dim)
 
         if self.state_dim is None:
-            print("ExtendedKalmanFilter state_dim error")
+            print("ExtendedKalmanFilter: state_dim error")
             raise ValueError
 
         # 初始化协方差矩阵
@@ -27,14 +29,14 @@ class ExtendedKalmanFilter:
             self.P = P0.copy()
             # 验证维度一致性
             if self.P.shape != (self.state_dim, self.state_dim):
-                raise ValueError("P0 MISMATCH x0")
+                raise ValueError("ExtendedKalmanFilter: P0 MISMATCH x0")
         else:
             self.P = np.eye(self.state_dim)
 
         # 验证x0和P0的维度一致性（如果两者都提供）
         if x0 is not None and P0 is not None:
             if len(x0) != P0.shape[0]:
-                raise ValueError("x0 MISMATCH P0")
+                raise ValueError("ExtendedKalmanFilter: x0 MISMATCH P0")
 
         self.x_add_func = x_add_func if x_add_func else lambda a, b: a + b
 
@@ -63,6 +65,8 @@ class ExtendedKalmanFilter:
         self.nis_threshold = 9.488  # 卡方检验，自由度=4
         self.nees_threshold = 19.675  # 卡方检验，自由度=11 (状态维度)
 
+        self.err_count = 50
+
     def restart(self):
         self.x = np.zeros(self.state_dim)
         self.P = np.eye(self.state_dim)
@@ -80,17 +84,20 @@ class ExtendedKalmanFilter:
         # 协方差的预测
         self.P = F @ self.P @ F.T + Q
 
-    def update(self, z, H, R, z_subtract_func, h_func=None, H_jacobian=None, x_true=None):
+    def update(self, z, H, R, z_sub_func=None, h_func=None, H_jacob=None, x_true=None):
         # KF的更新三公式
         if h_func is not None:
             z_pred = h_func(self.x)
-            if H_jacobian is not None:
-                H = H_jacobian(self.x)
+            if H_jacob is not None:
+                H = H_jacob(self.x)
         else:
             z_pred = H @ self.x
 
         # 计算残差
-        y = z_subtract_func(z, z_pred)
+        if z_sub_func is not None:
+            y = z_sub_func(z, z_pred)
+        else:
+            y = z - z_pred
 
         # 计算卡尔曼增益
         S = H @ self.P @ H.T + R
