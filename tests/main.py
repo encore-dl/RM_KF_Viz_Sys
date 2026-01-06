@@ -6,6 +6,7 @@ from simulation.simulator import Simulator
 from object.model.tongji.tracking.tongji_tracker import TongJiTracker
 from object.model.tjurm.tracking.tjurm_tracker import TJURMTracker
 from object.model.demo.tracking.demo_tracker import DemoTracker
+from object.model.demo2.tracking.demo_tracker_2 import DemoTracker2
 
 
 RESET = True
@@ -18,7 +19,7 @@ def main():
     simulator = Simulator()
     keyboard_manager = KeyboardManager(simulator)
 
-    simulator.tracker_manager.set_tracker(DemoTracker())
+    simulator.tracker_manager.set_tracker(DemoTracker2())
     simulator.tracker_manager.run_tracker_thread()
 
     running = True

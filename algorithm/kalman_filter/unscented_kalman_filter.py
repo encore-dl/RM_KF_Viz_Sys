@@ -161,6 +161,7 @@ class UnscentedKalmanFilter:
         self.P = self.P - K @ T.T
 
         self.P = (self.P + self.P.T) / 2.
+        self.P += np.eye(self.state_dim) * 1e-6
 
         # 计算nis和nees等，暂定
 

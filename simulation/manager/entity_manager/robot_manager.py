@@ -17,7 +17,8 @@ class RobotManager:
         self.selected_robot = None
         self.camera = camera
 
-        self.noise_sigma = 0.000
+        self.pos_noise_sigma = 0.005
+        self.rpy_noise_sigma = 0.01
 
     def create_robot(self, robot_type):
         robot = Robot(robot_type=robot_type)
@@ -41,9 +42,11 @@ class RobotManager:
 
         for robot in self.robots:
             for i, armor in enumerate(robot.armors):
-                noise = np.random.normal(0, self.noise_sigma, 3)
+                pos_noise = np.random.normal(0, self.pos_noise_sigma, 3)
+                rpy_noise = np.random.normal(0, self.rpy_noise_sigma, 3)
                 obsrv_armor = copy.deepcopy(armor)
-                obsrv_armor.world_pos += noise
+                obsrv_armor.world_pos += pos_noise
+                obsrv_armor.world_rpy += rpy_noise
                 if camera.is_armor_visible(obsrv_armor.world_pos, robot.world_pos):
                     obsrv_armors.append(obsrv_armor)
 

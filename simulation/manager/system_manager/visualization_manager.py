@@ -301,25 +301,23 @@ class VisualizationManager:
                 f"is tracking: {tracker_info.is_tracking}",
                 Color.GREEN
             )
-            entry_append(
-                f"pred robot pos: ({', '.join(f'{x:.3f}' for x in tracker_info.pred_pos[0])})" if tracker_info.pred_pos[0] is not None else "pred robot pos: None",
-                Color.WHITE
-            )
-            if len(tracker_info.pred_pos) > 1:
-                for i in range(1, len(tracker_info.pred_pos)):
-                    entry_append(
-                        f"pred armor pos: ({tracker_info.pred_pos[i][0]:.3f}, {tracker_info.pred_pos[i][1]:.3f}, {tracker_info.pred_pos[i][2]:.3f})",
-                        Color.GREEN
-                    )
+            if tracker_info.pred_pos:
+                entry_append(
+                    f"pred robot pos: ({', '.join(f'{x:.3f}' for x in tracker_info.pred_pos[0])})" if tracker_info.pred_pos[0] is not None else "pred robot pos: None",
+                    Color.WHITE
+                )
+                if len(tracker_info.pred_pos) > 1:
+                    for i in range(1, len(tracker_info.pred_pos)):
+                        entry_append(
+                            f"pred armor pos: ({tracker_info.pred_pos[i][0]:.3f}, {tracker_info.pred_pos[i][1]:.3f}, {tracker_info.pred_pos[i][2]:.3f})",
+                            Color.GREEN
+                        )
             if len(tracker_info.state_vecs) >= 1:
-                entry_append(
-                    f"motion x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[0])})",
-                    Color.WHITE
-                )
-                entry_append(
-                    f"rot x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[1])})",
-                    Color.WHITE
-                )
+                for i in range(len(tracker_info.state_vecs)):
+                    entry_append(
+                        f"state vec: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[i])})",
+                        Color.WHITE
+                    )
             # if len(tracker_info.state_vecs) == 3:
             #     # entry_append(
             #     #     f"main model x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[0])})",
