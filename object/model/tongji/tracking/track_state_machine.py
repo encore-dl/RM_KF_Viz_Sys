@@ -1,6 +1,6 @@
 from enum import Enum
 
-from object.entity.robot import RobotType
+from object.entity.rigid.robot import RobotType
 
 
 class MachineState(Enum):

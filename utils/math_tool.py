@@ -2,7 +2,7 @@ import math
 import numpy as np
 
 
-def get_euler_rotation_matrix(rpy):
+def euler_to_rotation_matrix(rpy):
     roll, pitch, yaw = rpy
 
     # 绕 X 轴旋转 (Roll)
@@ -32,8 +32,23 @@ def get_euler_rotation_matrix(rpy):
     return R
 
 
+def rotation_matrix_to_euler(R):
+    sqrt_p = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+    singular = sqrt_p < 1e-6
+
+    if not singular:
+        r = math.atan2(R[2, 1], R[2, 2])
+        p = math.atan2(-R[2, 0], sqrt_p)
+        y = math.atan2(R[1, 0], R[0, 0])
+    else:
+        r = math.atan2(-R[1, 2], R[1, 1])
+        p = math.atan2(-R[2, 0], sqrt_p)
+        y = 0
+    return np.array([r, p, y])
+
+
 def get_rigid_transform(pos, rpy):
-    R = get_euler_rotation_matrix(rpy)
+    R = euler_to_rotation_matrix(rpy)
     T = np.eye(4)
     T[:3, :3] = R
     T[:3, 3] = pos

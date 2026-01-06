@@ -1,6 +1,6 @@
 from object.model.tjurm.tjurm_model import TJURMModel
 
-from object.entity.robot import Robot, RobotType
+from object.entity.rigid.robot import Robot, RobotType
 
 
 class TrackedRobot:

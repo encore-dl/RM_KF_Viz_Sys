@@ -1,5 +1,5 @@
 import pygame as pg
-from object.entity.robot import RobotType
+from object.entity.rigid.robot import RobotType
 
 
 class KeyboardManager:

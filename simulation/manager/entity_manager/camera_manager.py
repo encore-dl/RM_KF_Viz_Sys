@@ -1,7 +1,6 @@
 import numpy as np
-import math
 
-from object.entity.camera import Camera
+from object.entity.rigid.camera import Camera
 
 
 class CameraManager:
@@ -11,9 +10,9 @@ class CameraManager:
 
         self.camera = Camera(
             world_pos=np.array([0., 0., 0.15]),
+            world_rpy=np.array([0., 0., 0.]),
             fov=360,
             max_range=10,
-            world_rpy=np.array([0., 0., 0.])
         )
 
     def switch_auto_aiming(self):

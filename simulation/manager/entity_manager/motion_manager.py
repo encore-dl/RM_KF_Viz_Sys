@@ -1,9 +1,9 @@
-from typing import Callable, Set
+from typing import Callable
 import numpy as np
 import math
 
-from object.entity.motion import Motion, MotionState, MotionConfig
-from utils.math_tool import pos_to_tpd, limit_rad, get_euler_rotation_matrix
+from object.entity.property.motion import Motion, MotionState, MotionConfig
+from utils.math_tool import pos_to_tpd, limit_rad, euler_to_rotation_matrix
 
 
 class MotionManager:
@@ -42,7 +42,7 @@ class MotionManager:
 
             # 5. 更新附属部件 (armors)
             if hasattr(entity, 'armors'):
-                self._update_armors(entity)
+                entity.update_armors()
 
     @staticmethod
     def _apply_physics(state, dt):
@@ -100,40 +100,6 @@ class MotionManager:
         entity.world_rpy = state.rpy
         entity.world_omg = state.omg
         entity.world_tpd = state.tpd
-
-    def _update_armors(self, robot):
-        """
-        利用相对坐标更新装甲板，无需在 manager 中维护 init_state。
-        """
-        # 确保 robot 知道 armor 相对于中心的偏移量
-        if not hasattr(robot, '_armors_initialized'):
-            for armor in robot.armors:
-                # 计算 vector 差
-                armor._relative_pos_to_body = armor.world_pos - robot.world_pos
-            robot._armors_initialized = True
-
-        rotate_mat = get_euler_rotation_matrix(robot.world_rpy)
-
-        for armor in robot.armors:
-            # 核心逻辑：World = RobotWorld + Rot @ LocalOffset
-            # 取出预先计算好的相对偏移 (monkey-patched 或原生属性)
-            local_pos = getattr(armor, '_relative_pos_to_body', np.zeros(3))
-
-            rotate_offs = rotate_mat @ local_pos
-
-            armor.world_pos = robot.world_pos + rotate_offs
-            # v_armor = v_body + w_body x r
-            armor.world_vel = robot.world_vel + np.cross(robot.world_omg, rotate_offs)
-
-            # 姿态更新
-            armor.world_rpy = robot.world_rpy.copy()
-            # 加上装甲板自身的安装角度 (假设均匀分布)
-            angle_offset = (armor.armor_id * 2 * math.pi / robot.armor_count)
-            armor.world_rpy[2] = limit_rad(robot.world_rpy[2] + angle_offset)
-            # armor.world_rpy[2] = limit_rad(robot.world_rpy[2] + math.pi + angle_offset)
-
-            armor.world_omg = robot.world_omg.copy()
-            armor.world_tpd = pos_to_tpd(armor.world_pos)
 
     def instant_stop(self, entity):
         # 强行停止选中的实体

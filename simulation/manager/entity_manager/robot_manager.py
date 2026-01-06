@@ -1,13 +1,8 @@
-import math
-
 import numpy as np
 import copy
 import time
 
-from collections import deque
-
-from object.entity.robot import (Robot)
-from utils.math_tool import safe_angle_sub, rad_to_ratio
+from object.entity.rigid.robot import (Robot)
 
 
 class RobotManager:
@@ -19,6 +14,7 @@ class RobotManager:
 
         self.pos_noise_sigma = 0.005
         self.rpy_noise_sigma = 0.01
+
 
     def create_robot(self, robot_type):
         robot = Robot(robot_type=robot_type)

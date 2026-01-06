@@ -1,18 +1,13 @@
 import numpy as np
 import math
 
-from utils.math_tool import get_euler_rotation_matrix, pos_to_tpd
+from object.entity.rigid.rigid import Rigid
+from utils.math_tool import euler_to_rotation_matrix, pos_to_tpd
 
 
-class Camera:
-    def __init__(self, world_pos=np.array([0., 0., 0.]), fov=60, max_range=10, world_rpy=np.array([0., 0., 0.])):
-        self.world_pos = world_pos
-        self.world_vel = np.array([0., 0., 0.])
-        self.world_acc = np.array([0., 0., 0.])
-        self.world_tpd = pos_to_tpd(world_pos)
-        self.world_rpy = world_rpy
-        self.world_omg = np.array([0., 0., 0.])
-        self.world_alp = np.array([0., 0., 0.])
+class Camera(Rigid):
+    def __init__(self, fov=60, max_range=10, **kwargs):
+        super().__init__(**kwargs)
 
         self.fov = math.radians(fov)  # field of view 视场角 弧度制
         self.max_range = max_range  # 相机最远识别范围/距离
@@ -31,7 +26,7 @@ class Camera:
         # 但是相机的旋转和相机视角里点的旋转是相反的，作用在点上的旋转矩阵应当是R的逆
         # 但R是正交矩阵，所以R转置等于R的逆
         rel_world_pos = world_pos - self.world_pos
-        R = get_euler_rotation_matrix(self.world_rpy)
+        R = euler_to_rotation_matrix(self.world_rpy)
         R_total = self.R_body_to_optical @ R.T
 
         optical_pos = R_total @ rel_world_pos
@@ -77,15 +72,15 @@ class Camera:
         return abs(azimuth) <= self.fov / 2 and abs(elevation) <= self.fov / 2
 
     def look_at(self, aiming_pos):
-        direction = aiming_pos - self.world_pos
-        dx, dy, dz = direction
+        r_vec = aiming_pos - self.world_pos
+        dx, dy, dz = r_vec
         dist_xy = math.sqrt(dx ** 2 + dy ** 2)
 
         self.world_rpy[2] = math.atan2(dy, dx)
         self.world_rpy[1] = np.clip(-math.atan2(dz, dist_xy), -math.pi / 2, math.pi / 2)
 
     def get_forward_vec(self):
-        R = get_euler_rotation_matrix(self.world_rpy)
+        R = euler_to_rotation_matrix(self.world_rpy)
         forward_vec = R @ np.array([0.01, 0., 0.])
 
         return forward_vec
@@ -102,5 +97,5 @@ class Camera:
 
         dot_product = np.dot(robot_camera_univec, robot_armor_univec)
 
-        return dot_product >= math.sqrt(2)/2  # 内积在 [√3/2, 1] 之间算看见
+        return dot_product >= 1/2  # 内积在 [√3/2, 1] 之间算看见
 

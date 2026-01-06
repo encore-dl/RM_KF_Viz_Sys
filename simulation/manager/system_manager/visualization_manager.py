@@ -87,6 +87,14 @@ class VisualizationManager:
                 )
                 pg.draw.circle(self.screen, Color.WHITE, armor_main_screen_pos, 4)
 
+                for endpoint_world_pos in armor.light_bar_endpoints:
+                    endpoint_main_screen_pos = world_to_main_screen(
+                        endpoint_world_pos,
+                        self.main_screen_center,
+                        self.world_scale
+                    )
+                    pg.draw.circle(self.screen, Color.CYAN, endpoint_main_screen_pos, 4)
+
         # 画 加了高斯噪声的装甲板
         # 也就是观测数据 obsrv
         for obsrv_armor in obsrv_armors:
@@ -219,6 +227,16 @@ class VisualizationManager:
                     if armor_camera_screen_pos is not None:
                         pg.draw.circle(self.screen, Color.WHITE, armor_camera_screen_pos, 4)
 
+                    for endpoint_world_pos in armor.light_bar_endpoints:
+                        endpoint_camera_screen_pos = world_to_camera_screen(
+                            world_pos=endpoint_world_pos,
+                            camera=camera,
+                            camera_screen_center=self.camera_screen_center,
+                            resolution=camera_screen_resolution
+                        )
+                        if endpoint_camera_screen_pos is not None:
+                            pg.draw.circle(self.screen, Color.CYAN, endpoint_camera_screen_pos, 4)
+
         # 画 加了高斯噪声的装甲板
         # 也就是观测数据 obsrv
         for obsrv_armor in obsrv_armors:
@@ -281,10 +299,15 @@ class VisualizationManager:
                     f"true armor pos: {', '.join(f'{x:.3f}' for x in armor.world_pos)}",
                     Color.GREEN
                 )
-                # entry_append(
-                #     f"true armor rpy: {', '.join(f'{(x+math.pi)/(2*math.pi):.3f}' for x in armor.world_rpy)}",
-                #     Color.CYAN
-                # )
+                # for endpoint_world_pos in armor.light_bar_endpoints:
+                #     entry_append(
+                #         f"true endpoint pos: {', '.join(f'{x:.3f}' for x in armor.endpoint_world_pos)}",
+                #         Color.GREEN
+                #     )
+                entry_append(
+                    f"true armor rpy: {', '.join(f'{(x+math.pi)/(2*math.pi):.3f}' for x in armor.world_rpy)}",
+                    Color.CYAN
+                )
         # # for obsrv_armor in obsrv_armors:
         # #     entry_append(
         # #         f"obsrv armor rpy: {', '.join(f'{x*(2/math.pi)+(1/2):.3f}' for x in obsrv_armor.world_rpy)}",

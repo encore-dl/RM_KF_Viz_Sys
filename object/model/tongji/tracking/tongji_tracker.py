@@ -1,7 +1,7 @@
 from object.model.tongji.tracking.track_state_machine import TrackStateMachine
 from object.model.tongji.tracking.track_state_machine import MachineState
 from object.model.tongji.tongji_model import TongJiModel
-from object.entity.robot import Robot
+from object.entity.rigid.robot import Robot
 
 
 class TongJiTracker:
