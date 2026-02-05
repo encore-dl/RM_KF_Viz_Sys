@@ -124,8 +124,8 @@ class Robot(Rigid):
 
             armor.world_tpd = pos_to_tpd(armor.world_pos)
 
-            for i, local_point in enumerate(armor.init_light_bar_endpoints):
-                armor.light_bar_endpoints[i] = armor.world_pos + (armor_world_R @ local_point)
+            for i, local_point in enumerate(armor.init_light_corners):
+                armor.light_corners[i] = armor.world_pos + (armor_world_R @ local_point)
 
 
 

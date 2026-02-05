@@ -52,7 +52,10 @@ class Camera(Rigid):
         u = u_norm * self.focal_len
         v = v_norm * self.focal_len
 
-        return np.array([int(u), int(v)])
+        # return np.array([int(u), int(v)])
+        # return np.array([round(u, 1), round(v, 1)])
+        return np.array([round(u, 1), round(v, 2)])
+        # return np.array([u, v])
 
     def world_to_pixel(self, world_pos):
         optical_pos = self.world_to_camera(world_pos)

@@ -54,4 +54,7 @@ class KalmanFilter:
         I = np.eye(self.state_dim)
         self.P = (I - K @ H) @ self.P @ (I - K @ H).T + K @ R @ K.T
 
+        self.y = y
+        self.S = S
+
 

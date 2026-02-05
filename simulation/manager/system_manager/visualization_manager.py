@@ -15,11 +15,11 @@ class Color:
     GREEN = (0, 255, 0)
     BLUE = (0, 0, 255)
     YELLOW = (255, 255, 0)
-    PURPLE = (128, 0, 128)
+    PURPLE = (255, 0, 255)
     CYAN = (0, 255, 255)
 
 
-WORLD_SCALE = 100
+WORLD_SCALE = 200
 
 PI = math.pi
 
@@ -51,14 +51,14 @@ class VisualizationManager:
 
         self.world_scale = WORLD_SCALE
 
-    def show(self, true_robots, obsrv_armors, tracker_info, camera):
+    def show(self, true_robots, obsrv_armors, tracker_info, camera, pnp_info=None):
         self.screen.fill(Color.BLACK)
 
-        self.show_main_screen(true_robots, obsrv_armors, tracker_info, camera)
-        self.show_camera_screen(true_robots, obsrv_armors, tracker_info, camera)
-        self.show_info_screen(true_robots, obsrv_armors, tracker_info)
+        self.show_main_screen(true_robots, obsrv_armors, tracker_info, camera, pnp_info)
+        self.show_camera_screen(true_robots, obsrv_armors, tracker_info, camera, pnp_info)
+        self.show_info_screen(true_robots, obsrv_armors, tracker_info, pnp_info)
 
-    def show_main_screen(self, true_robots, obsrv_armors, tracker_info, camera):
+    def show_main_screen(self, true_robots, obsrv_armors, tracker_info, camera, pnp_info):
         main_screen_rect = pg.Rect(
             self.main_screen_center[0] - self.main_screen_width // 2,
             self.main_screen_center[1] - self.main_screen_height // 2,
@@ -72,71 +72,46 @@ class VisualizationManager:
         # 也就是真实数据 true data
         for robot in true_robots:
             # 车，装甲板的可视化
-            robot_main_screen_pos = world_to_main_screen(
-                world_pos=robot.world_pos,
-                main_screen_center=self.main_screen_center,
-                world_scale=self.world_scale
-            )
-            pg.draw.circle(self.screen, Color.BLUE, robot_main_screen_pos, 6)
-
+            self._draw_point_main(robot.world_pos, Color.BLUE, 6)
             for armor in robot.armors:
-                armor_main_screen_pos = world_to_main_screen(
-                    armor.world_pos,
-                    self.main_screen_center,
-                    self.world_scale
-                )
-                pg.draw.circle(self.screen, Color.WHITE, armor_main_screen_pos, 4)
-
-                for endpoint_world_pos in armor.light_bar_endpoints:
-                    endpoint_main_screen_pos = world_to_main_screen(
-                        endpoint_world_pos,
-                        self.main_screen_center,
-                        self.world_scale
-                    )
-                    pg.draw.circle(self.screen, Color.CYAN, endpoint_main_screen_pos, 4)
+                self._draw_point_main(armor.world_pos, Color.WHITE, 4)
+                for ep in armor.light_corners:
+                    self._draw_point_main(ep, Color.CYAN, 4)
 
         # 画 加了高斯噪声的装甲板
         # 也就是观测数据 obsrv
         for obsrv_armor in obsrv_armors:
-            obsrv_armor_main_screen_pos = world_to_main_screen(
-                obsrv_armor.world_pos,
-                self.main_screen_center,
-                self.world_scale
-            )
-            pg.draw.circle(self.screen, Color.YELLOW, obsrv_armor_main_screen_pos, 5)
+            self._draw_point_main(obsrv_armor.world_pos, Color.YELLOW, 5)
 
         # 画 模型导出的数据
         # 也就是 预测数据 pred
         if tracker_info is not None and tracker_info.is_tracking:
-            if tracker_info.pred_pos[0] is not None:
-                pred_center_main_screen_pos = world_to_main_screen(
-                    [
-                        tracker_info.pred_pos[0][0],
-                        tracker_info.pred_pos[0][1]
-                    ],
-                    self.main_screen_center,
-                    self.world_scale
-                )
-                pg.draw.circle(self.screen, Color.RED, pred_center_main_screen_pos, 6)
+            pred_robot_pos = tracker_info.pred_pos[0]
+            if pred_robot_pos is not None:
+                self._draw_point_main(pred_robot_pos, Color.RED, 6)
 
-            if len(tracker_info.pred_pos) > 1:
-                for armor_id in range(len(tracker_info.pred_pos[1:])):
-                    pred_armor_pos = tracker_info.pred_pos[armor_id+1]
-                    pred_armor_main_screen_pos = world_to_main_screen(
-                        pred_armor_pos,
-                        self.main_screen_center,
-                        self.world_scale
-                    )
-                    pg.draw.circle(self.screen, Color.PURPLE, pred_armor_main_screen_pos, 4)
+            for pred_armor_pos in tracker_info.pred_pos[1:]:
+                self._draw_point_main(pred_armor_pos, Color.PURPLE, 4)
+
+
+
+        if pnp_info is not None and pnp_info['pos'] is not None:
+            pnp_pos = pnp_info['pos']
+
+            # === 修改：增加 NaN 安全检查 ===
+            if not np.isnan(pnp_pos).any():
+                # 画一个橙色的 X
+                center = self._draw_point_main(pnp_pos, (255, 165, 0), 0)
+                if center is not None:  # world_to_main_screen 可能返回 None (虽然当前实现不会)
+                    pg.draw.line(self.screen, (255, 165, 0), (center[0] - 5, center[1] - 5),
+                                 (center[0] + 5, center[1] + 5), 2)
+                    pg.draw.line(self.screen, (255, 165, 0), (center[0] + 5, center[1] - 5),
+                                 (center[0] - 5, center[1] + 5), 2)
+
+
 
         # 绘制相机在 main screen 上的位置
-        camera_main_screen_pos = world_to_main_screen(
-            camera.world_pos,
-            self.main_screen_center,
-            self.world_scale
-        )
-        pg.draw.circle(self.screen, Color.CYAN, camera_main_screen_pos, 8)
-
+        camera_main_screen_pos = self._draw_point_main(camera.world_pos, Color.CYAN, 8)
         # 绘制扇形视线
         forward_vec = camera.get_forward_vec()
         forward_end = camera.world_pos + forward_vec * 30
@@ -191,7 +166,16 @@ class VisualizationManager:
             )
             pg.draw.line(self.screen, Color.CYAN, camera_main_screen_pos, fan_mid_main_screen_pos, 1)
 
-    def show_camera_screen(self, true_robots, obsrv_armors, tracker_info, camera):
+    def _draw_point_main(self, world_pos, color, radius):
+        main_screen_pos = world_to_main_screen(
+            world_pos=world_pos,
+            main_screen_center=self.main_screen_center,
+            world_scale=self.world_scale
+        )
+        pg.draw.circle(self.screen, color, main_screen_pos, radius)
+        return main_screen_pos
+
+    def show_camera_screen(self, true_robots, obsrv_armors, tracker_info, camera, pnp_info):
         camera_screen_rect = pg.Rect(
             self.camera_screen_center[0] - self.camera_screen_width // 2,
             self.camera_screen_center[1] - self.camera_screen_height // 2,
@@ -201,80 +185,59 @@ class VisualizationManager:
         pg.draw.rect(self.screen, (5, 5, 5), camera_screen_rect)
         pg.draw.rect(self.screen, Color.WHITE, camera_screen_rect, 2)
 
-        camera_screen_resolution = (self.camera_screen_width, self.camera_screen_height)
-
         # 画真实装甲板
         # 也就是真实数据 true data
         for robot in true_robots:
             # 车，装甲板的可视化
-            robot_camera_screen_pos = world_to_camera_screen(
-                world_pos=robot.world_pos,
-                camera=camera,
-                camera_screen_center=self.camera_screen_center,
-                resolution=camera_screen_resolution
-            )
-            if robot_camera_screen_pos:
-                pg.draw.circle(self.screen, Color.BLUE, robot_camera_screen_pos, 6)
-
-            if robot.armors:
-                for armor in robot.armors:
-                    armor_camera_screen_pos = world_to_camera_screen(
-                        world_pos=armor.world_pos,
-                        camera=camera,
-                        camera_screen_center=self.camera_screen_center,
-                        resolution=camera_screen_resolution
-                    )
-                    if armor_camera_screen_pos is not None:
-                        pg.draw.circle(self.screen, Color.WHITE, armor_camera_screen_pos, 4)
-
-                    for endpoint_world_pos in armor.light_bar_endpoints:
-                        endpoint_camera_screen_pos = world_to_camera_screen(
-                            world_pos=endpoint_world_pos,
-                            camera=camera,
-                            camera_screen_center=self.camera_screen_center,
-                            resolution=camera_screen_resolution
-                        )
-                        if endpoint_camera_screen_pos is not None:
-                            pg.draw.circle(self.screen, Color.CYAN, endpoint_camera_screen_pos, 4)
+            self._draw_point_camera(robot.world_pos, camera, Color.BLUE, 6)
+            for armor in robot.armors:
+                self._draw_point_camera(armor.world_pos, camera, Color.WHITE, 4)
+                for ep in armor.light_corners:
+                    self._draw_point_camera(ep, camera, Color.CYAN, 4)
 
         # 画 加了高斯噪声的装甲板
         # 也就是观测数据 obsrv
         for obsrv_armor in obsrv_armors:
-            obsrv_armor_camera_screen_pos = world_to_camera_screen(
-                world_pos=obsrv_armor.world_pos,
-                camera=camera,
-                camera_screen_center=self.camera_screen_center,
-                resolution=camera_screen_resolution
-            )
-            if obsrv_armor_camera_screen_pos is not None:
-                pg.draw.circle(self.screen, Color.YELLOW, obsrv_armor_camera_screen_pos, 5)
+            self._draw_point_camera(obsrv_armor.world_pos, camera, Color.YELLOW, 5)
 
         # 画 模型导出的数据
         # 也就是 预测数据 pred
         if tracker_info is not None and tracker_info.is_tracking:
-            if tracker_info.pred_pos[0] is not None:
-                pred_center_camera_screen_pos = world_to_camera_screen(
-                    world_pos=tracker_info.pred_pos[0],
-                    camera=camera,
-                    camera_screen_center=self.camera_screen_center,
-                    resolution=camera_screen_resolution
-                )
-                if pred_center_camera_screen_pos is not None:
-                    pg.draw.circle(self.screen, Color.RED, pred_center_camera_screen_pos, 6)
+            pred_robot_pos = tracker_info.pred_pos[0]
+            if pred_robot_pos is not None:
+                self._draw_point_camera(pred_robot_pos, camera, Color.RED, 6)
 
-            if len(tracker_info.pred_pos) > 1:
-                for armor_id in range(len(tracker_info.pred_pos[1:])):
-                    pred_armor_pos = tracker_info.pred_pos[armor_id+1]
-                    pred_armor_camera_screen_pos = world_to_camera_screen(
-                        world_pos=pred_armor_pos,
-                        camera=camera,
-                        camera_screen_center=self.camera_screen_center,
-                        resolution=camera_screen_resolution
-                    )
-                    if pred_armor_camera_screen_pos is not None:
-                        pg.draw.circle(self.screen, Color.PURPLE, pred_armor_camera_screen_pos, 4)
+            for pred_armor_pos in tracker_info.pred_pos[1:]:
+                self._draw_point_camera(pred_armor_pos, camera, Color.PURPLE, 4)
 
-    def show_info_screen(self, true_robots, obsrv_armors, tracker_info):
+
+        if pnp_info is not None and pnp_info['pos'] is not None:
+            pnp_pos = pnp_info['pos']
+
+            # === 修改：增加 NaN 安全检查 ===
+            if not np.isnan(pnp_pos).any():
+                # 画一个橙色的 X
+                center = self._draw_point_camera(pnp_pos, camera, (255, 165, 0), 0)
+                if center is not None:  # world_to_main_screen 可能返回 None (虽然当前实现不会)
+                    pg.draw.line(self.screen, (255, 165, 0), (center[0] - 5, center[1] - 5),
+                                 (center[0] + 5, center[1] + 5), 2)
+                    pg.draw.line(self.screen, (255, 165, 0), (center[0] + 5, center[1] - 5),
+                                 (center[0] - 5, center[1] + 5), 2)
+
+    def _draw_point_camera(self, world_pos, camera, color, radius):
+        resolution = (self.camera_screen_width, self.camera_screen_height)
+        camera_screen_pos = world_to_camera_screen(
+            world_pos=world_pos,
+            camera=camera,
+            camera_screen_center=self.camera_screen_center,
+            resolution=resolution
+        )
+        if camera_screen_pos is not None:
+            draw_pos = (int(camera_screen_pos[0]), int(camera_screen_pos[1]))
+            pg.draw.circle(self.screen, color, draw_pos, radius)
+        return camera_screen_pos
+
+    def show_info_screen(self, true_robots, obsrv_armors, tracker_info, pnp_info):
         info_screen_rect = pg.Rect(
             self.info_screen_center[0] - self.info_screen_width // 2,
             self.info_screen_center[1] - self.info_screen_height // 2,
@@ -289,25 +252,25 @@ class VisualizationManager:
         def entry_append(text_, color_):
             texts_colors.append((text_, color_))
 
-        for true_robot in true_robots:
-            entry_append(
-                f"true robot pos: {', '.join(f'{x:.3f}' for x in true_robot.world_pos)}",
-                Color.CYAN
-            )
-            for armor in true_robot.armors:
-                entry_append(
-                    f"true armor pos: {', '.join(f'{x:.3f}' for x in armor.world_pos)}",
-                    Color.GREEN
-                )
-                # for endpoint_world_pos in armor.light_bar_endpoints:
+        # for true_robot in true_robots:
+        #     entry_append(
+        #         f"true robot pos: {', '.join(f'{x:.3f}' for x in true_robot.world_pos)}",
+        #         Color.CYAN
+        #     )
+        #     for armor in true_robot.armors:
+        #         entry_append(
+        #             f"true armor pos: {', '.join(f'{x:.3f}' for x in armor.world_pos)}",
+        #             Color.GREEN
+        #         )
+                # for light_corner_world_pos in armor.light_corners:
                 #     entry_append(
-                #         f"true endpoint pos: {', '.join(f'{x:.3f}' for x in armor.endpoint_world_pos)}",
+                #         f"true light corner pos: {', '.join(f'{x:.3f}' for x in armor.light_corner_world_pos)}",
                 #         Color.GREEN
                 #     )
-                entry_append(
-                    f"true armor rpy: {', '.join(f'{(x+math.pi)/(2*math.pi):.3f}' for x in armor.world_rpy)}",
-                    Color.CYAN
-                )
+                # entry_append(
+                #     f"true armor rpy: {', '.join(f'{(x+math.pi)/(2*math.pi):.3f}' for x in armor.world_rpy)}",
+                #     Color.CYAN
+                # )
         # # for obsrv_armor in obsrv_armors:
         # #     entry_append(
         # #         f"obsrv armor rpy: {', '.join(f'{x*(2/math.pi)+(1/2):.3f}' for x in obsrv_armor.world_rpy)}",
@@ -335,12 +298,12 @@ class VisualizationManager:
                             f"pred armor pos: ({tracker_info.pred_pos[i][0]:.3f}, {tracker_info.pred_pos[i][1]:.3f}, {tracker_info.pred_pos[i][2]:.3f})",
                             Color.GREEN
                         )
-            if len(tracker_info.state_vecs) >= 1:
-                for i in range(len(tracker_info.state_vecs)):
-                    entry_append(
-                        f"state vec: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[i])})",
-                        Color.WHITE
-                    )
+            # if len(tracker_info.state_vecs) >= 1:
+            #     for i in range(len(tracker_info.state_vecs)):
+            #         entry_append(
+            #             f"state vec: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[i])})",
+            #             Color.WHITE
+            #         )
             # if len(tracker_info.state_vecs) == 3:
             #     # entry_append(
             #     #     f"main model x: ({', '.join(f'{x:.3f}' for x in tracker_info.state_vecs[0])})",
@@ -408,6 +371,27 @@ class VisualizationManager:
                 Color.GREEN
             )
 
+
+
+        if pnp_info is not None and pnp_info['pos'] is not None and not np.isnan(pnp_info['pos']).any():
+            entry_append("-" * 20, Color.WHITE)
+            entry_append("PnP Verification:", Color.YELLOW)
+
+            # 位置对比
+            t_pos = pnp_info['true_pos']
+            c_pos = pnp_info['pos']
+            err_pos = np.linalg.norm(t_pos - c_pos) * 1000  # mm
+
+            entry_append(f"Calc Pos: {c_pos[0]:.3f}, {c_pos[1]:.3f}, {c_pos[2]:.3f}", Color.YELLOW)
+            entry_append(f"Pos Err: {err_pos:.1f} mm", Color.RED if err_pos > 50 else Color.GREEN)
+
+            # Yaw 对比
+            c_rpy = pnp_info['rpy']
+            if not np.isnan(c_rpy[2]):
+                entry_append(f"Calc Yaw: {math.degrees(c_rpy[2]):.1f} deg", Color.YELLOW)
+
+
+
         entry_count = len(texts_colors)
         font_size = 24
 
@@ -459,13 +443,6 @@ class VisualizationManager:
                     surface = font.render(text, True, color)
                     self.screen.blit(surface, (x, curr_y))
                     curr_y += line_height
-
-
-
-
-
-
-
 
 
 

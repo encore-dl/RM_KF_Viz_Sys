@@ -1,3 +1,4 @@
+import numpy as np
 import dataclasses
 
 import pygame.time as pgtime
@@ -8,6 +9,8 @@ from simulation.manager.entity_manager.motion_manager import MotionManager
 from simulation.manager.system_manager.visualization_manager import VisualizationManager
 from simulation.manager.system_manager.tracker_manager import TrackerManager
 
+from utils.math_tool import euler_to_rotation_matrix
+from algorithm.perspective_n_point.perspective_n_point import solve_pnp_core
 
 SCREEN_WIDTH = 1500
 SCREEN_HEIGHT = 840
@@ -27,8 +30,18 @@ class Simulator:
         self.visualization_manager = VisualizationManager(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.tracker_manager = TrackerManager()
 
+        self.pnp_result_info = None
+
     def run_simulator(self):
         self.update()
+
+        # 生产被观测的数据，实际上只有被观测的装甲板
+        self.camera_manager.get_obsrv(self.robot_manager.robots)
+
+        if len(self.camera_manager.obsrv_data_with_t[0]) != 0:
+            self.tracker_manager.put_tracker_input(
+                self.camera_manager.obsrv_data_with_t
+            )
 
         output_data = self.tracker_manager.get_tracker_output()
         if output_data is None:
@@ -45,9 +58,10 @@ class Simulator:
 
         self.visualization_manager.show(
             self.robot_manager.robots,
-            self.robot_manager.obsrv_data_with_t[0],
+            self.camera_manager.obsrv_data_with_t[0],
             tracker_info,
-            self.camera_manager.camera
+            self.camera_manager.camera,
+            self.camera_manager.pnp_result_info
         )
 
     def update(self):
@@ -62,13 +76,6 @@ class Simulator:
 
         self.motion_manager.update(dt, curr_t)
 
-        # 生产被观测的数据，实际上只有被观测的装甲板
-        self.robot_manager.get_obsrv(self.camera_manager.camera)
-        if len(self.robot_manager.obsrv_data_with_t[0]) != 0:
-            self.tracker_manager.put_tracker_input(
-                self.robot_manager.obsrv_data_with_t
-            )
-
         self.clock.tick(self.simulator_fps)
 
     def select_entity(self, selected_type, entity_number=None):
@@ -79,7 +86,6 @@ class Simulator:
                 pass
         elif selected_type == 'camera':
             self.selected_entity = self.camera_manager.camera
-
 
 
 

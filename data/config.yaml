@@ -9,7 +9,7 @@ Robot:
     low_height: 0.1
     armor_size: large
     light_bar_interval: 0.23
-    light_bar_length: 0.063
+    light_bar_length: 0.055
 
   Infantry:
     length: 0.5
@@ -19,7 +19,7 @@ Robot:
     low_height: 0.1
     armor_size: small
     light_bar_interval: 0.135
-    light_bar_length: 0.063
+    light_bar_length: 0.055
 
   Sentry:
     length: 0.5
@@ -29,7 +29,7 @@ Robot:
     low_height: 0.1
     armor_size: small
     light_bar_interval: 0.135
-    light_bar_length: 0.063
+    light_bar_length: 0.055
 
   Engineer:
     length: 0.5
@@ -39,7 +39,7 @@ Robot:
     low_height: 0.1
     armor_size: small
     light_bar_interval: 0.135
-    light_bar_length: 0.063
+    light_bar_length: 0.055
 
 
 

@@ -19,8 +19,8 @@ class Armor(Rigid):
         self.light_bar_interval = 0.
         self.light_bar_length = 0.
 
-        self.init_light_bar_endpoints = []
-        self.light_bar_endpoints = []
+        self.init_light_corners = []
+        self.light_corners = []
 
         self.mount_pos = np.zeros(3)
         self.mount_R = np.eye(3)
@@ -37,14 +37,15 @@ class Armor(Rigid):
         self.light_bar_interval = data['Robot'][robot_name_str]['light_bar_interval']
         self.light_bar_length = data['Robot'][robot_name_str]['light_bar_length']
 
-        self.init_light_bar_endpoints = [
-            np.array([0, -(self.light_bar_interval/2.), (self.light_bar_length/2.)]),
-            np.array([0, -(self.light_bar_interval/2.), -(self.light_bar_length/2.)]),
-            np.array([0, (self.light_bar_interval/2.), -(self.light_bar_length/2.)]),
-            np.array([0, (self.light_bar_interval/2.), (self.light_bar_length/2.)]),
+        self.init_light_corners = [
+            # 假设 Y+ 是左 (Left)，Z+ 是上 (Up) -> 符合 FLU 坐标系下的左侧
+            # 顺序: 左上 -> 右上 -> 右下 -> 左下
+            np.array([0, (self.light_bar_interval / 2.), (self.light_bar_length / 2.)]),  # 左上
+            np.array([0, -(self.light_bar_interval / 2.), (self.light_bar_length / 2.)]),  # 右上
+            np.array([0, -(self.light_bar_interval / 2.), -(self.light_bar_length / 2.)]),  # 右下
+            np.array([0, (self.light_bar_interval / 2.), -(self.light_bar_length / 2.)]),  # 左下
         ]
-        self.light_bar_endpoints = copy.deepcopy(self.init_light_bar_endpoints)
-
+        self.light_corners = copy.deepcopy(self.init_light_corners)
 
 
 
