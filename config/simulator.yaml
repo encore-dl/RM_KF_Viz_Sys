@@ -1,0 +1,11 @@
+screen_width: 1500
+screen_height: 840
+
+world_scale: 200.0
+
+sim_fps: 500
+sensor_fps: 50
+
+pos_noise_sigma: 0.0
+rpy_noise_sigma: 0.0
+pixel_noise_sigma: 0.0

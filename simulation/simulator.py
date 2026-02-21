@@ -1,16 +1,10 @@
-import numpy as np
-import dataclasses
-
 import pygame.time as pgtime
 
-from simulation.manager.entity_manager.robot_manager import RobotManager
-from simulation.manager.entity_manager.camera_manager import CameraManager
-from simulation.manager.entity_manager.motion_manager import MotionManager
-from simulation.manager.system_manager.visualization_manager import VisualizationManager
-from simulation.manager.system_manager.tracker_manager import TrackerManager
-
-from utils.math_tool import euler_to_rotation_matrix
-from algorithm.perspective_n_point.perspective_n_point import solve_pnp_core
+from simulation.managers.entity_manager.robot_manager import RobotManager
+from simulation.managers.entity_manager.sensor_manager import SensorManager
+from simulation.managers.entity_manager.motion_manager import MotionManager
+from simulation.managers.system_manager.visualization_manager import VisualizationManager
+from simulation.managers.system_manager.tracker_manager import TrackerManager
 
 SCREEN_WIDTH = 1500
 SCREEN_HEIGHT = 840
@@ -24,45 +18,24 @@ class Simulator:
 
         self.selected_entity = None
 
-        self.camera_manager = CameraManager()
+        self.camera_manager = SensorManager()
         self.robot_manager = RobotManager(self.camera_manager.camera)
         self.motion_manager = MotionManager()
         self.visualization_manager = VisualizationManager(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.tracker_manager = TrackerManager()
 
-        self.pnp_result_info = None
-
     def run_simulator(self):
         self.update()
 
         # 生产被观测的数据，实际上只有被观测的装甲板
-        self.camera_manager.get_obsrv(self.robot_manager.robots)
-
-        if len(self.camera_manager.obsrv_data_with_t[0]) != 0:
-            self.tracker_manager.put_tracker_input(
-                self.camera_manager.obsrv_data_with_t
-            )
-
-        output_data = self.tracker_manager.get_tracker_output()
-        if output_data is None:
-            tracker_info = None
-        else:
-            @dataclasses.dataclass
-            class TrackerInfo:
-                is_tracking = output_data[0]
-                pred_pos = output_data[1]
-                state_vecs = output_data[2]
-                fps = output_data[-2]
-
-            tracker_info = TrackerInfo()
+        self.camera_manager.get_obs(self.robot_manager.robots)
 
         self.visualization_manager.show(
             self.robot_manager.robots,
-            self.camera_manager.obsrv_data_with_t[0],
-            tracker_info,
             self.camera_manager.camera,
-            self.camera_manager.pnp_result_info
         )
+
+        # self.draw_psi_d_graph()
 
     def update(self):
         curr_t = pgtime.get_ticks()
@@ -86,6 +59,14 @@ class Simulator:
                 pass
         elif selected_type == 'camera':
             self.selected_entity = self.camera_manager.camera
+
+    # def draw_psi_d_graph(self):
+    #     if len(self.camera_manager.obs_data_with_t[0]) != 0:
+    #         psi = self.camera_manager.obs_data_with_t[0][0].world_rpy[2]
+    #     if len(self.robot_manager.robots) != 0:
+    #         d = np.linalg.norm(self.robot_manager.robots[0].world_pos - self.camera_manager.camera.world_pos)
+
+
 
 
 
