@@ -1,5 +1,6 @@
 import pygame as pg
 from core.entities.property.robot_type import RobotType
+from core.entities.rigid.camera import Camera
 
 
 class KeyboardManager:
@@ -92,17 +93,15 @@ class KeyboardManager:
         curr_motions = set()
 
         # 处理平移和旋转
-        has_trans = False
         for key, func in self.trans_key_func_map.items():
             if key in self.pressed_keys:
                 curr_motions.add(func)
-                has_trans = True
 
-        has_rot = False
-        for key, func in self.rot_key_func_map.items():
-            if key in self.pressed_keys:
-                curr_motions.add(func)
-                has_rot = True
+        is_cam_autoaim = isinstance(entity, Camera) and entity.auto_aiming
+        if not is_cam_autoaim:
+            for key, func in self.rot_key_func_map.items():
+                if key in self.pressed_keys:
+                    curr_motions.add(func)
 
         # 3. 将构建好的集合应用给选中的实体
         self.simulator.motion_manager.set_motion_func_set(entity, curr_motions)

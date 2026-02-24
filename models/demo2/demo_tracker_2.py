@@ -28,7 +28,6 @@ class DemoTracker2:
             self.lost_t += dt
 
         tar_armor = self._match_armor(obsrv_armors)
-        # print(tar_armor.armor_id)
 
         if tar_armor is not None:
             self.lost_t = 0.

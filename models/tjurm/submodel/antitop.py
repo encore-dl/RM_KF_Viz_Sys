@@ -6,9 +6,9 @@ from typing import Optional
 from core.algorithms.filters.kalman import KalmanFilter
 from core.algorithms.filters.extended_kalman import ExtendedKalmanFilter
 
-from models.tjurm.data_and_utils.slide_integrator import SlideIntegrator
-from models.tjurm.data_and_utils.slide_weight_avg import SlideWeightedAvg
-from models.tjurm.data_and_utils.math_tools import (
+from models.tjurm.utils.slide_integrator import SlideIntegrator
+from models.tjurm.utils.slide_weight_avg import SlideWeightedAvg
+from models.tjurm.utils.my_math import (
     get_angle_min,
     safe_angle_sub,
     limit_rad,
