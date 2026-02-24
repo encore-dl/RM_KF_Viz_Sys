@@ -81,7 +81,7 @@ class VisualizationManager:
         with self._lock:
             self._draw_texts.append(data)
 
-    def show(self, true_robots, camera):
+    def show(self, true_robots, camera, bullets):
         self.screen.fill(Color.BLACK)
 
         with self._lock:
@@ -89,11 +89,11 @@ class VisualizationManager:
             pnp_list = self._latest_pnp_list
             pred = self._latest_pred
 
-        self.show_main_screen(true_robots, camera, obs, pred, pnp_list)
-        self.show_camera_screen(true_robots, camera, obs, pred, pnp_list)
+        self.show_main_screen(true_robots, camera, obs, pred, pnp_list, bullets)
+        self.show_camera_screen(true_robots, camera, obs, pred, pnp_list, bullets)
         self.show_info_screen(true_robots, obs, pred, pnp_list)
 
-    def show_main_screen(self, true_robots, camera, obs, pred, pnp_list):
+    def show_main_screen(self, true_robots, camera, obs, pred, pnp_list, bullets):
         main_screen_rect = pg.Rect(
             self.main_screen_center[0] - self.main_screen_width // 2,
             self.main_screen_center[1] - self.main_screen_height // 2,
@@ -135,6 +135,18 @@ class VisualizationManager:
                 if center is not None:  # world_to_main_screen 可能返回 None (虽然当前实现不会)
                     pg.draw.line(self.screen, Color.ORANGE, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
                     pg.draw.line(self.screen, Color.ORANGE, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
+
+        if bullets:
+            for bullet in bullets:
+                if bullet.active:
+                    # 用绿色圆点表示飞行中的子弹
+                    self._draw_point_main(bullet.pos, Color.GREEN, 3)
+                elif bullet.hit:
+                    # 用红色 X 表示命中点
+                    center = self._draw_point_main(bullet.hit_pos, Color.RED, 0)
+                    if center is not None:
+                        pg.draw.line(self.screen, Color.RED, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
+                        pg.draw.line(self.screen, Color.RED, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
 
         # 绘制相机在 main screen 上的位置
         camera_main_screen_pos = self._draw_point_main(camera.world_pos, Color.CYAN, 8)
@@ -201,7 +213,7 @@ class VisualizationManager:
         pg.draw.circle(self.screen, color, main_screen_pos, radius)
         return main_screen_pos
 
-    def show_camera_screen(self, true_robots, camera, obs, pred, pnp_list):
+    def show_camera_screen(self, true_robots, camera, obs, pred, pnp_list, bullets):
         camera_screen_rect = pg.Rect(
             self.camera_screen_center[0] - self.camera_screen_width // 2,
             self.camera_screen_center[1] - self.camera_screen_height // 2,
@@ -243,6 +255,17 @@ class VisualizationManager:
                     pg.draw.line(self.screen, Color.ORANGE, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
                     pg.draw.line(self.screen, Color.ORANGE, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
 
+        # 画子弹
+        if bullets:
+            for bullet in bullets:
+                if bullet.active:
+                    self._draw_point_camera(bullet.pos, camera, Color.GREEN, 3)
+                elif bullet.hit:
+                    center = self._draw_point_camera(bullet.hit_pos, camera, Color.RED, 0)
+                    if center is not None:
+                        pg.draw.line(self.screen, Color.RED, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
+                        pg.draw.line(self.screen, Color.RED, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
+
     def _draw_point_camera(self, world_pos, camera, color, radius):
         resolution = (self.camera_screen_width, self.camera_screen_height)
         camera_screen_pos = world_to_camera_screen(
@@ -271,49 +294,54 @@ class VisualizationManager:
         def entry_append(text_, color_):
             texts_colors.append((text_, color_))
 
+        # ---------- 观测数据 ----------
         if obs is not None:
             entry_append(f"obs armors: {len(obs.obs_armors)}", Color.CYAN)
-            # 可选：显示每个观测装甲板的简要信息
-            # for i, armor in enumerate(obs.armors):
-            #     entry_append(f"  Armor {i}: type={armor.armor_size}, pos=({armor.world_pos[0]:.2f}, {armor.world_pos[1]:.2f})", Color.WHITE)
 
         # ---------- 预测数据 ----------
         if pred is not None:
             entry_append(f"is tracking: {pred.is_tracking}", Color.GREEN)
-            if pred.center is not None:
+            if pred.center is not None and len(pred.center) >= 3:
                 entry_append(
                     f"pred center: ({pred.center[0]:.3f}, {pred.center[1]:.3f}, {pred.center[2]:.3f})",
                     Color.WHITE
                 )
-            for i, armor_pos in enumerate(pred.armors):
-                entry_append(
-                    f"pred armor{i}: ({armor_pos[0]:.3f}, {armor_pos[1]:.3f}, {armor_pos[2]:.3f})",
-                    Color.GREEN
-                )
+            else:
+                entry_append("pred center: None", Color.WHITE)
+
+            if pred.armors:
+                for i, armor_pos in enumerate(pred.armors):
+                    if armor_pos is not None and len(armor_pos) >= 3:
+                        entry_append(
+                            f"pred armor{i}: ({armor_pos[0]:.3f}, {armor_pos[1]:.3f}, {armor_pos[2]:.3f})",
+                            Color.GREEN
+                        )
+            else:
+                entry_append("pred armors: []", Color.GREEN)
+
             entry_append(f"fps: {pred.fps:.3f}", Color.GREEN)
 
-            # 如果状态向量存在，可以展开显示（这里假设是一个numpy数组）
+            # 显示状态向量（如果有）
             if pred.state_vector is not None:
-                entry_append("state vector:", Color.YELLOW)
-                # 根据需要展示部分维度，这里仅显示前几个元素
                 sv = pred.state_vector
-                if len(sv) >= 4:
-                    entry_append(f"  x,y,z,ψ: {sv[0]:.3f}, {sv[1]:.3f}, {sv[2]:.3f}, {sv[3]:.3f}", Color.YELLOW)
-
-        # ---------- PnP 结果 ----------
-        # 暂时没有
-
-        # 真实车辆数据
-        # if true_robots:
-        #     entry_append("True robots:", Color.CYAN)
-        #     for i, robot in enumerate(true_robots):
-        #         entry_append(f"  Robot{i}: ({robot.world_pos[0]:.3f}, {robot.world_pos[1]:.3f}, {robot.world_pos[2]:.3f})", Color.WHITE)
+                entry_append("state vector:", Color.YELLOW)
+                # 显示前11个元素（假设11维），若不足则全部显示
+                display_len = min(len(sv), 11)
+                indices = [0, 1, 2, 6, 7, 8, 9, 10]  # 常用索引：x,y,z,psi,w,ra,rb,dz
+                parts = []
+                for idx in indices:
+                    if idx < display_len:
+                        parts.append(f"{sv[idx]:.3f}")
+                if parts:
+                    entry_append(f"  x,y,z,ψ,ω,ra,rb,dz: {', '.join(parts)}", Color.YELLOW)
+                else:
+                    entry_append(f"  {sv}", Color.YELLOW)
 
         # ---------- 调试文本 ----------
         with self._lock:
             draw_texts = list(self._draw_texts)
         if draw_texts:
-            entry_append("--- Debug ---", Color.WHITE)
+            entry_append("--- Debug ---", Color.GREEN)
             for draw_text in draw_texts:
                 entry_append(draw_text.text, draw_text.color)
 

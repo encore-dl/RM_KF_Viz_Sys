@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from models.tjurm.data_and_utils.slide_integrator import SlideIntegrator
+from models.tjurm.utils.slide_integrator import SlideIntegrator
 
 @dataclass
 class TJURMConfig:

@@ -74,16 +74,16 @@ class TrackerManager:
 
                 self._tracker.track(input_data.obs_armors, input_dt, input_data.timestamp)  # 调用track
 
-                pred = Prediction(
-                    center=self._tracker.pred_pos[0] if self._tracker.pred_pos else None,
-                    armors=self._tracker.pred_pos[1:] if len(self._tracker.pred_pos) > 1 else [],
-                    timestamp=time.time(),
-                    is_tracking=self._tracker.is_tracking,
-                    fps=self.fps,
-                    state_vector=self._tracker.state_vecs
-                )
+                # pred = Prediction(
+                #     center=self._tracker.pred_pos[0] if self._tracker.pred_pos else None,
+                #     armors=self._tracker.pred_pos[1:] if len(self._tracker.pred_pos) > 1 else [],
+                #     timestamp=time.time(),
+                #     is_tracking=self._tracker.is_tracking,
+                #     fps=self.fps,
+                #     state_vector=self._tracker.state_vecs
+                # )
                 # 新增bus数据传递方式，output队列暂留
-                event_bus.publish('pred', pred)
+                # event_bus.publish('pred', pred)
             except queue.Empty:
                 continue
             except Exception as e:

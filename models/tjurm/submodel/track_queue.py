@@ -4,7 +4,7 @@ from typing import Optional, Any
 from threading import Lock
 
 from core.algorithms.filters.extended_kalman import ExtendedKalmanFilter
-from models.tjurm.data_and_utils.math_tools import (
+from models.tjurm.utils.my_math import (
     limit_rad,
     get_distance
 )

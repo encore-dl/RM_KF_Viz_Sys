@@ -1,7 +1,7 @@
 import numpy as np
 
 from core.algorithms.filters.extended_kalman import ExtendedKalmanFilter
-from models.demo3.utils.math import (
+from models.demo3.utils.my_math import (
     limit_rad
 )
 

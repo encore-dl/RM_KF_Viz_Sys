@@ -1,6 +1,7 @@
 from typing import Callable
 import numpy as np
 
+from core.entities.rigid.camera import Camera
 from core.entities.property.motion import Motion, MotionState, MotionConfig
 from core.algorithms.math import limit_rad
 
@@ -34,7 +35,10 @@ class MotionManager:
                 func(cur_state, t, dt)  # 如果加上t参运动，需修改此处
 
             # 物理更新：从当前速度向目标速度平滑过渡
-            self._apply_physics(cur_state, dt)
+            is_cam_autoaim = isinstance(entity, Camera) and entity.auto_aiming
+            self._apply_physics_trans(cur_state, dt)
+            if not is_cam_autoaim:
+                self._apply_physics_rot(cur_state, dt)
 
             # 回写到entity
             self._apply_motion_state(entity, cur_state)
@@ -44,7 +48,7 @@ class MotionManager:
                 entity.update_armors()
 
     @staticmethod
-    def _apply_physics(state, dt):
+    def _apply_physics_trans(state, dt):
         # 斜角运动不归一化就会变成 Minecraft 了 ...
         tar_speed = np.linalg.norm(state.tar_vel)
         if tar_speed > 0:
@@ -74,6 +78,8 @@ class MotionManager:
         # 更新位置
         state.pos += state.vel * dt
 
+    @staticmethod
+    def _apply_physics_rot(state, dt):
         # 旋转部分（类似逻辑）
         omg_error = state.tar_omg - state.omg
         control_torque = state.motor_gain * omg_error

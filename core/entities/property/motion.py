@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 class MotionConfig:
     T_STEP = 2.3  # 加速度/速度增量
     R_STEP_SLOW = 2.0
-    R_STEP_FAST = 10.0
+    R_STEP_FAST = 8.0
 
 
 @dataclass

@@ -110,3 +110,8 @@ class Camera(Rigid):
     def switch_auto_aiming(self):
         self.auto_aiming = not self.auto_aiming
 
+    def apply_control(self, alpha, dt):
+        self.world_alp[2] = alpha
+        self.world_omg[2] += self.world_alp[2] * dt
+        self.world_rpy[2] += self.world_omg[2] * dt
+

@@ -1,6 +1,6 @@
 import numpy as np
 
-from models.tjurm.data_and_utils.config import TJURMConfig
+from models.tjurm.utils.config import TJURMConfig
 from models.tjurm.submodel.track_queue import TrackQueue
 from models.tjurm.submodel.antitop import Antitop
 

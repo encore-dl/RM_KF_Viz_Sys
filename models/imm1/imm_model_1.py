@@ -3,7 +3,7 @@ import numpy as np
 
 from core.algorithms.filters.kalman import KalmanFilter
 from core.algorithms.filters.unscented_kalman import UnscentedKalmanFilter
-from models.imm1.utils.math import (
+from models.imm1.utils.my_math import (
     limit_rad
 )
 
