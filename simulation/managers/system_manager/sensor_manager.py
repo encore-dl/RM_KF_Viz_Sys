@@ -1,7 +1,6 @@
 import numpy as np
 import time
 
-from core.entities.rigid.camera import Camera
 from core.algorithms.math import euler_to_rotation_matrix
 from core.algorithms.perspective_n_point.perspective_n_point import solve_pnp_core
 from simulation.event_bus import event_bus
@@ -9,32 +8,25 @@ from simulation.dataflow import ArmorObservation, Observation, PnPResult
 
 
 class SensorManager:
-    def __init__(self):
-        self.cameras = []
-        self.selected_camera = None
-
-        self.camera = Camera(
-            world_pos=np.array([0., 0., 0.15]),
-            world_rpy=np.array([0., 0., 0.]),
-            fov=360,
-            max_range=10,
-        )
-
+    def __init__(self, camera_manager):
+        self.camera_manager = camera_manager
         self.pos_noise_sigma = 0.00
         self.rpy_noise_sigma = 0.0
         self.pixel_noise_sigma = 0.
 
     def get_obs(self, robots):
+        camera = self.camera_manager.selected_camera
+        
         obs_armors = []
         pnp_results = []
 
         for robot in robots:
             for armor in robot.armors:
                 # 检查法向量是否朝向相机
-                if not self.camera.is_armor_visible(armor.world_pos, robot.world_pos):
+                if not camera.is_armor_visible(armor.world_pos, robot.world_pos):
                     continue
                 # 检查装甲板中心是否在相机视野内
-                if self.camera.world_to_pixel(armor.world_pos) is None:
+                if camera.world_to_pixel(armor.world_pos) is None:
                     continue
 
                 # 计算角点和像素点
@@ -55,7 +47,7 @@ class SensorManager:
 
                 pixel_points = []
                 for world_corner in world_corners:
-                    uv = self.camera.world_to_pixel(world_corner)
+                    uv = camera.world_to_pixel(world_corner)
                     if uv is None:
                         pixel_points = None
                         break
@@ -69,13 +61,13 @@ class SensorManager:
                 ordered_pixels = np.array(pixel_points, dtype=np.float32)
 
                 # PnP求解
-                K = self.camera.get_intrinsic_matrix()
+                K = camera.get_intrinsic_matrix()
                 D = np.zeros(5)
-                R_head2world = euler_to_rotation_matrix(self.camera.world_rpy)
-                T_head2world = self.camera.world_pos
-                R_pnp2head = self.camera.R_body_to_optical.T
+                R_head2world = euler_to_rotation_matrix(camera.world_rpy)
+                T_head2world = camera.world_pos
+                R_pnp2head = camera.R_body_to_optical.T
                 T_pnp2head = np.zeros(3)
-                head_yaw = self.camera.world_rpy[2]
+                head_yaw = camera.world_rpy[2]
 
                 calc_pos, calc_rpy = solve_pnp_core(
                     camera_k=K,

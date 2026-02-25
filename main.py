@@ -19,7 +19,7 @@ def main():
     simulator = Simulator()
     keyboard_manager = KeyboardManager(simulator)
 
-    simulator.tracker_manager.set_tracker(DemoTracker4(simulator.camera_manager.camera))
+    simulator.tracker_manager.set_tracker(DemoTracker4(simulator.camera_manager))
     # simulator.tracker_manager.set_tracker(DemoTracker2())
     simulator.tracker_manager.run_tracker_thread()
 

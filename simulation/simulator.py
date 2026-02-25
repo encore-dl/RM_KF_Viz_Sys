@@ -3,11 +3,11 @@ import numpy as np
 import time
 
 from simulation.managers.entity_manager.robot_manager import RobotManager
-from simulation.managers.entity_manager.sensor_manager import SensorManager
 from simulation.managers.entity_manager.motion_manager import MotionManager
+from simulation.managers.entity_manager.camera_manager import CameraManager
+from simulation.managers.system_manager.sensor_manager import SensorManager
 from simulation.managers.system_manager.visualization_manager import VisualizationManager
 from simulation.managers.system_manager.tracker_manager import TrackerManager
-
 from core.entities.bullet import Bullet
 from simulation.event_bus import event_bus
 
@@ -24,35 +24,32 @@ class Simulator:
 
         self.selected_entity = None
 
-        self.camera_manager = SensorManager()
-        self.robot_manager = RobotManager(self.camera_manager.camera)
+        self.camera_manager = CameraManager()
+        self.camera_manager.create_camera()  # 默认相机
+
+        self.sensor_manager = SensorManager(self.camera_manager)
+        self.robot_manager = RobotManager()
         self.motion_manager = MotionManager()
         self.visualization_manager = VisualizationManager(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.tracker_manager = TrackerManager()
 
-        self.bullets = []  # 子弹列表
+        self.bullets = []
         self.last_alp = 0.
         self.ctrl_accum = 0.
 
-        # 订阅控制指令
-        event_bus.subscribe('gimbal_command', self._on_gimbal_command)
-        event_bus.subscribe('fire', self._on_fire)
+        event_bus.subscribe('gimbal', self._on_gimbal)
+        event_bus.subscribe('fire', self._on_fire_command)
 
     def run_simulator(self):
         self.update()
-
-        # 生产被观测的数据，实际上只有被观测的装甲板
-        self.camera_manager.get_obs(self.robot_manager.robots)
-
+        self.sensor_manager.get_obs(self.robot_manager.robots)
         self._update_bullets()
-
         self.visualization_manager.show(
             self.robot_manager.robots,
-            self.camera_manager.camera,
+            self.camera_manager.cameras,
+            self.camera_manager.selected_camera,
             self.bullets
         )
-
-        # self.draw_psi_d_graph()
 
     def update(self):
         curr_t = pgtime.get_ticks()
@@ -61,11 +58,10 @@ class Simulator:
 
         self.motion_manager.update(self.dt, curr_t)
 
-        # 相机自瞄
-        if self.camera_manager.camera.auto_aiming:
+        if self.camera_manager.selected_camera and self.camera_manager.selected_camera.auto_aiming:
             self.ctrl_accum += self.dt
             while self.ctrl_accum >= 0.01:
-                self.camera_manager.camera.apply_control(self.last_alp, 0.01)
+                self.camera_manager.selected_camera.apply_control(self.last_alp, 0.01)
                 self.ctrl_accum -= 0.01
 
         self.clock.tick(self.simulator_fps)
@@ -74,54 +70,74 @@ class Simulator:
         if selected_type == 'robot':
             if entity_number is not None and 0 <= entity_number < len(self.robot_manager.robots):
                 self.selected_entity = self.robot_manager.robots[entity_number]
-            else:
-                pass
         elif selected_type == 'camera':
-            self.selected_entity = self.camera_manager.camera
+            if entity_number is not None and 0 <= entity_number < len(self.camera_manager.cameras):
+                self.selected_entity = self.camera_manager.cameras[entity_number]
+                self.camera_manager.selected_camera = self.selected_entity
+            elif self.camera_manager.cameras:
+                self.selected_entity = self.camera_manager.cameras[0]
+                self.camera_manager.selected_camera = self.selected_entity
 
-    def _on_gimbal_command(self, data):
-        """接收云台控制指令"""
+    def select_next_robot(self):
+        if not self.robot_manager.robots:
+            self.selected_entity = None
+            return
+        if self.selected_entity in self.robot_manager.robots:
+            idx = self.robot_manager.robots.index(self.selected_entity)
+            idx = (idx + 1) % len(self.robot_manager.robots)
+            self.selected_entity = self.robot_manager.robots[idx]
+        else:
+            self.selected_entity = self.robot_manager.robots[0]
+
+    def select_next_camera(self):
+        if not self.camera_manager.cameras:
+            self.selected_entity = None
+            return
+        if self.selected_entity in self.camera_manager.cameras:
+            idx = self.camera_manager.cameras.index(self.selected_entity)
+            idx = (idx + 1) % len(self.camera_manager.cameras)
+            self.selected_entity = self.camera_manager.cameras[idx]
+            self.camera_manager.selected_camera = self.selected_entity
+        else:
+            self.selected_entity = self.camera_manager.cameras[0]
+            self.camera_manager.selected_camera = self.selected_entity
+
+    def _on_gimbal(self, data):
         self.last_alp = data['alpha']
 
-    def _on_fire(self, data):
-        """发射子弹"""
+    def _on_fire_command(self, data):
         pos = data['pos']
         vel = data['vel']
         self.fire_bullet(pos, vel)
 
     def _update_bullets(self):
-        """更新所有子弹位置并检查碰撞"""
-        for bullet in self.bullets[:]:  # 遍历副本
+        curr_t = time.time()
+        for bullet in self.bullets[:]:
+            if bullet.hit:
+                if curr_t - bullet.hit_time > 0.5:
+                    self.bullets.remove(bullet)
+                continue
+            prev_pos = bullet.pos.copy()
             bullet.update(self.dt)
-            # 检查是否超出范围或时间过长
-            if np.linalg.norm(bullet.pos) > 50 or (time.time() - bullet.birth_time) > 5:
+            curr_pos = bullet.pos
+            if np.linalg.norm(curr_pos) > 50 or (time.time() - bullet.birth_time) > 5:
                 bullet.active = False
-            # 检查与所有装甲板的碰撞
-            if bullet.active:
-                for robot in self.robot_manager.robots:
-                    for armor in robot.armors:
-                        if bullet.check_collision(armor):
-                            bullet.active = False
-                            bullet.hit = True
-                            bullet.hit_pos = bullet.pos.copy()
-                            bullet.hit_target = (robot.robot_type, armor.armor_id)
-                            break
-            if not bullet.active:
                 self.bullets.remove(bullet)
+                continue
+            hit_occurred = False
+            for robot in self.robot_manager.robots:
+                for armor in robot.armors:
+                    hit, hit_pos = bullet.check_segment_collision(prev_pos, curr_pos, armor)
+                    if hit:
+                        bullet.hit = True
+                        bullet.hit_pos = hit_pos
+                        bullet.hit_target = (robot.robot_type, armor.armor_id)
+                        bullet.hit_time = curr_t
+                        hit_occurred = True
+                        break
+                if hit_occurred:
+                    break
 
     def fire_bullet(self, pos, vel):
-        """外部调用发射子弹"""
         bullet = Bullet(pos, vel)
         self.bullets.append(bullet)
-
-
-
-
-
-
-
-
-
-
-
-

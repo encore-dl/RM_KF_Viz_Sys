@@ -1,17 +1,17 @@
 import numpy as np
-import time
 from simulation.event_bus import event_bus
 
+
 class ShootDecider:
-    def __init__(self, camera, v0=30.0, fire_threshold=0.05, cooldown=0.1):
+    def __init__(self, camera_manager, v0=10., fire_threshold=0.05, cooldown=0.1):
         """
         射击决策器
-        :param camera: 相机对象（用于获取当前位置和姿态）
+        :param camera_manager: 相机（用于获取当前位置和姿态）
         :param v0: 子弹初速 (m/s)
         :param fire_threshold: 角度误差阈值 (rad)
         :param cooldown: 开火冷却时间 (s)
         """
-        self.camera = camera
+        self.camera_manager = camera_manager
         self.v0 = v0
         self.fire_threshold = fire_threshold
         self.cooldown = cooldown
@@ -30,7 +30,7 @@ class ShootDecider:
         # 1. 估算子弹飞行时间（简化：用当前距离除以初速）
         #    获取目标中心当前位置
         center_pos = target_ekf.ekf.x[:3]
-        gun_pos = self.camera.world_pos
+        gun_pos = self.camera_manager.selected_camera.world_pos
         vec = center_pos - gun_pos
         dist = np.linalg.norm(vec)
         if dist < 1e-6:
@@ -43,7 +43,7 @@ class ShootDecider:
         # 3. 选择最佳装甲板
         best_armor_pos = None
         best_score = -np.inf
-        gun_pos = self.camera.world_pos
+        gun_pos = self.camera_manager.selected_camera.world_pos
 
         for k, armor_pos in enumerate(future_armors):
             # 计算装甲板法向量（指向机器人中心）
@@ -87,8 +87,8 @@ class ShootDecider:
         desired_pitch = np.arctan2(dz, dist_xy)
 
         # 5. 计算当前云台角度
-        current_yaw = self.camera.world_rpy[2]
-        current_pitch = self.camera.world_rpy[1]
+        current_yaw = self.camera_manager.selected_camera.world_rpy[2]
+        current_pitch = self.camera_manager.selected_camera.world_rpy[1]
 
         # 角度差归一化
         yaw_diff = desired_yaw - current_yaw
@@ -109,12 +109,12 @@ class ShootDecider:
 
     def _fire(self):
         """发射子弹，方向取当前云台朝向"""
-        yaw = self.camera.world_rpy[2]
-        pitch = self.camera.world_rpy[1]
-        muzzle_pos = self.camera.world_pos.copy()
+        yaw = self.camera_manager.selected_camera.world_rpy[2]
+        pitch = self.camera_manager.selected_camera.world_rpy[1]
+        muzzle_pos = self.camera_manager.selected_camera.world_pos.copy()
         vel = self.v0 * np.array([
             np.cos(yaw) * np.cos(pitch),
             np.sin(yaw) * np.cos(pitch),
             np.sin(pitch)
         ])
-        event_bus.publish('fire_command', {'pos': muzzle_pos, 'vel': vel})
+        event_bus.publish('fire', {'pos': muzzle_pos, 'vel': vel})

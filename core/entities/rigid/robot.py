@@ -58,13 +58,13 @@ class Robot(Rigid):
                     rel_rpy = np.array([0, 0, 0])
                 elif i == 1:  # 右
                     rel_pos = np.array([0, self.width / 2, offset_z_high])
-                    rel_rpy = np.array([0, 0, -math.pi / 2])
+                    rel_rpy = np.array([0, 0, math.pi / 2])
                 elif i == 2:  # 后
                     rel_pos = np.array([-self.length / 2, 0, offset_z_low])
                     rel_rpy = np.array([0, 0, math.pi])
                 elif i == 3:  # 左
                     rel_pos = np.array([0, -self.width / 2, offset_z_high])
-                    rel_rpy = np.array([0, 0, math.pi / 2])
+                    rel_rpy = np.array([0, 0, -math.pi / 2])
             elif self.armor_count == 2:
                 offset_z = self.low_height - center_z
                 if i == 0:  # 前

@@ -25,6 +25,7 @@ class Bullet:
         self.hit = False
         self.hit_pos = None
         self.hit_target = None
+        self.hit_time = None
 
     def update(self, dt):
         """欧拉积分更新位置"""
@@ -38,40 +39,44 @@ class Bullet:
         self.vel += (acc_drag + acc_gravity) * dt
         self.pos += self.vel * dt
 
-    def check_collision(self, armor):
-        """
-        检查子弹是否与装甲板碰撞
-        简化：判断子弹到装甲板平面的距离 < 阈值，且投影点在四边形内
-        """
-        # 装甲板四个角点
+    def check_segment_collision(self, prev_pos, curr_pos, armor):
         corners = armor.light_corners
-        # 计算装甲板平面法向量（近似为装甲板的X轴方向）
-        # 取 corners[0] -> corners[1] 为一边，corners[0] -> corners[3] 为另一边
         v1 = corners[1] - corners[0]
         v2 = corners[3] - corners[0]
         normal = np.cross(v1, v2)
         norm = np.linalg.norm(normal)
         if norm < 1e-6:
-            return False
+            return False, None
         normal = normal / norm
-        # 计算子弹到平面的距离
-        d = np.dot(self.pos - corners[0], normal)
-        if abs(d) > 0.01:  # 10mm 阈值
-            return False
-        # 投影点到平面，判断是否在四边形内
-        # 将点投影到平面
-        proj = self.pos - d * normal
-        # 转换为局部坐标（使用 v1, v2 作为基）
-        # 解方程 proj = corners[0] + u * v1 + v * v2
-        # 建立矩阵 M = [v1, v2] (3x2)
+
+        d_prev = np.dot(prev_pos - corners[0], normal)
+        d_curr = np.dot(curr_pos - corners[0], normal)
+        if d_prev * d_curr > 0:
+            return False, None
+
+        t = -d_prev / (d_curr - d_prev)
+        if t < 0 or t > 1:
+            return False, None
+
+        hit_point = prev_pos + t * (curr_pos - prev_pos)
+
         M = np.column_stack((v1, v2))
-        # 使用最小二乘解
         try:
-            uv, _, _, _ = np.linalg.lstsq(M, proj - corners[0], rcond=None)
+            uv, _, _, _ = np.linalg.lstsq(M, hit_point - corners[0], rcond=None)
         except:
-            return False
+            return False, None
         u, v = uv[0], uv[1]
-        # 检查是否在 [0,1] 范围内
-        if 0 <= u <= 1 and 0 <= v <= 1:
-            return True
-        return False
+        if not (0 <= u <= 1 and 0 <= v <= 1):
+            return False, None
+
+        # 检查子弹方向是否与法向量相反（正面击中）
+        dir_vec = curr_pos - prev_pos
+        dir_norm = np.linalg.norm(dir_vec)
+        if dir_norm < 1e-6:
+            return False, None
+        dir_unit = dir_vec / dir_norm
+        if np.dot(dir_unit, normal) >= 0:
+            return False, None
+
+        return True, hit_point
+

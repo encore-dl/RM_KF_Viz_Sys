@@ -19,6 +19,7 @@ class Color:
     BLUE = (0, 0, 255)
     YELLOW = (255, 255, 0)
     PURPLE = (255, 0, 255)
+    VIOLET = (100, 100, 255)
     CYAN = (0, 255, 255)
     ORANGE = (255, 165, 0)
 
@@ -81,7 +82,7 @@ class VisualizationManager:
         with self._lock:
             self._draw_texts.append(data)
 
-    def show(self, true_robots, camera, bullets):
+    def show(self, true_robots, cameras, selected_camera, bullets):
         self.screen.fill(Color.BLACK)
 
         with self._lock:
@@ -89,11 +90,11 @@ class VisualizationManager:
             pnp_list = self._latest_pnp_list
             pred = self._latest_pred
 
-        self.show_main_screen(true_robots, camera, obs, pred, pnp_list, bullets)
-        self.show_camera_screen(true_robots, camera, obs, pred, pnp_list, bullets)
+        self.show_main_screen(true_robots, cameras, selected_camera, obs, pred, pnp_list, bullets)
+        self.show_camera_screen(true_robots, selected_camera, obs, pred, pnp_list, bullets)
         self.show_info_screen(true_robots, obs, pred, pnp_list)
 
-    def show_main_screen(self, true_robots, camera, obs, pred, pnp_list, bullets):
+    def show_main_screen(self, true_robots, cameras, selected_camera, obs, pred, pnp_list, bullets):
         main_screen_rect = pg.Rect(
             self.main_screen_center[0] - self.main_screen_width // 2,
             self.main_screen_center[1] - self.main_screen_height // 2,
@@ -103,6 +104,11 @@ class VisualizationManager:
         pg.draw.rect(self.screen, (20, 20, 20), main_screen_rect)
         pg.draw.rect(self.screen, Color.WHITE, main_screen_rect, 2)
 
+        # 绘制所有相机位置
+        for i, cam in enumerate(cameras):
+            color = Color.CYAN if cam == selected_camera else Color.VIOLET  # 当前相机高亮
+            cam_pos = self._draw_point_main(cam.world_pos, color, 6)
+
         # 画真实装甲板
         # 也就是真实数据 true data
         for robot in true_robots:
@@ -110,6 +116,7 @@ class VisualizationManager:
             self._draw_point_main(robot.world_pos, Color.BLUE, 6)
             for armor in robot.armors:
                 self._draw_point_main(armor.world_pos, Color.WHITE, 4)
+                self._draw_armor_box_main(armor, Color.CYAN)
                 for ep in armor.light_corners:
                     self._draw_point_main(ep, Color.CYAN, 4)
 
@@ -138,16 +145,20 @@ class VisualizationManager:
 
         if bullets:
             for bullet in bullets:
-                if bullet.active:
-                    # 用绿色圆点表示飞行中的子弹
-                    self._draw_point_main(bullet.pos, Color.GREEN, 3)
-                elif bullet.hit:
-                    # 用红色 X 表示命中点
+                if bullet.hit:
+                    # 绘制红叉（命中点）
                     center = self._draw_point_main(bullet.hit_pos, Color.RED, 0)
                     if center is not None:
-                        pg.draw.line(self.screen, Color.RED, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
-                        pg.draw.line(self.screen, Color.RED, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
+                        pg.draw.line(self.screen, Color.RED, (center[0] - 8, center[1] - 8), (center[0] + 8, center[1] + 8), 3)
+                        pg.draw.line(self.screen, Color.RED, (center[0] + 8, center[1] - 8), (center[0] - 8, center[1] + 8), 3)
+                elif bullet.active:
+                    # 绘制飞行中的子弹（绿色大圆点）
+                    self._draw_point_main(bullet.pos, Color.GREEN, 3)
 
+        if selected_camera:
+            self._draw_camera_fov(selected_camera)
+
+    def _draw_camera_fov(self, camera):
         # 绘制相机在 main screen 上的位置
         camera_main_screen_pos = self._draw_point_main(camera.world_pos, Color.CYAN, 8)
         # 绘制扇形视线
@@ -213,7 +224,36 @@ class VisualizationManager:
         pg.draw.circle(self.screen, color, main_screen_pos, radius)
         return main_screen_pos
 
-    def show_camera_screen(self, true_robots, camera, obs, pred, pnp_list, bullets):
+    def _draw_armor_box_main(self, armor, color):
+        main_screen_rect = pg.Rect(
+            self.main_screen_center[0] - self.main_screen_width // 2,
+            self.main_screen_center[1] - self.main_screen_height // 2,
+            self.main_screen_width,
+            self.main_screen_height
+        )
+        screen_points = []
+        for corner in armor.light_corners:
+            pos = world_to_main_screen(
+                corner,
+                self.main_screen_center,
+                self.world_scale
+            )
+            if pos is None:
+                return
+            screen_points.append(pos)
+        if len(screen_points) == 4:
+            # 创建与主画面区域大小相同的透明表面
+            temp_surf = pg.Surface((main_screen_rect.width, main_screen_rect.height), pg.SRCALPHA)
+            # 将屏幕点转换为相对于临时表面的坐标
+            rel_points = [(p[0] - main_screen_rect.left, p[1] - main_screen_rect.top) for p in screen_points]
+            # 绘制半透明填充（使用原色，透明度80）
+            pg.draw.polygon(temp_surf, (*color[:3], 80), rel_points)
+            # 将临时表面 blit 到主屏幕的对应区域
+            self.screen.blit(temp_surf, main_screen_rect)
+            # 绘制边框（直接在主屏幕上）
+            pg.draw.polygon(self.screen, color, screen_points, 2)
+
+    def show_camera_screen(self, true_robots, selected_camera, obs, pred, pnp_list, bullets):
         camera_screen_rect = pg.Rect(
             self.camera_screen_center[0] - self.camera_screen_width // 2,
             self.camera_screen_center[1] - self.camera_screen_height // 2,
@@ -223,34 +263,38 @@ class VisualizationManager:
         pg.draw.rect(self.screen, (5, 5, 5), camera_screen_rect)
         pg.draw.rect(self.screen, Color.WHITE, camera_screen_rect, 2)
 
+        if selected_camera is None:
+            return
+
         # 画真实装甲板
         # 也就是真实数据 true data
         for robot in true_robots:
             # 车，装甲板的可视化
-            self._draw_point_camera(robot.world_pos, camera, Color.BLUE, 6)
+            self._draw_point_camera(robot.world_pos, selected_camera, Color.BLUE, 6)
             for armor in robot.armors:
-                self._draw_point_camera(armor.world_pos, camera, Color.WHITE, 4)
+                self._draw_point_camera(armor.world_pos, selected_camera, Color.WHITE, 4)
+                self._draw_armor_box_camera(armor, selected_camera, Color.CYAN)
                 for ep in armor.light_corners:
-                    self._draw_point_camera(ep, camera, Color.CYAN, 4)
+                    self._draw_point_camera(ep, selected_camera, Color.CYAN, 4)
 
         # 画 加了高斯噪声的装甲板
         # 也就是观测数据 obs
         if obs:
             for obs_armor in obs.obs_armors:
-                self._draw_point_camera(obs_armor.world_pos, camera, Color.YELLOW, 5)
+                self._draw_point_camera(obs_armor.world_pos, selected_camera, Color.YELLOW, 5)
 
         # 画 模型导出的数据
         # 也就是 预测数据 pred
         if pred and pred.is_tracking:
             if pred.center is not None:
-                self._draw_point_camera(pred.center, camera, Color.RED, 6)
+                self._draw_point_camera(pred.center, selected_camera, Color.RED, 6)
             for pred_armor_pos in pred.armors:
-                self._draw_point_camera(pred_armor_pos, camera, Color.PURPLE, 4)
+                self._draw_point_camera(pred_armor_pos, selected_camera, Color.PURPLE, 4)
 
         for pnp in pnp_list:
             if pnp and pnp.pnp_pos is not None and not np.isnan(pnp.pnp_pos).any():
                 # 画一个橙色的 X
-                center = self._draw_point_camera(pnp.pnp_pos, camera, Color.ORANGE, 0)
+                center = self._draw_point_camera(pnp.pnp_pos, selected_camera, Color.ORANGE, 0)
                 if center is not None:  # world_to_main_screen 可能返回 None (虽然当前实现不会)
                     pg.draw.line(self.screen, Color.ORANGE, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
                     pg.draw.line(self.screen, Color.ORANGE, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
@@ -258,13 +302,15 @@ class VisualizationManager:
         # 画子弹
         if bullets:
             for bullet in bullets:
-                if bullet.active:
-                    self._draw_point_camera(bullet.pos, camera, Color.GREEN, 3)
-                elif bullet.hit:
-                    center = self._draw_point_camera(bullet.hit_pos, camera, Color.RED, 0)
+                if bullet.hit:
+                    # 绘制红叉（命中点）
+                    center = self._draw_point_camera(bullet.hit_pos, selected_camera, Color.RED, 0)
                     if center is not None:
-                        pg.draw.line(self.screen, Color.RED, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
-                        pg.draw.line(self.screen, Color.RED, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
+                        pg.draw.line(self.screen, Color.RED, (center[0] - 8, center[1] - 8), (center[0] + 8, center[1] + 8), 3)
+                        pg.draw.line(self.screen, Color.RED, (center[0] + 8, center[1] - 8), (center[0] - 8, center[1] + 8), 3)
+                elif bullet.active:
+                    # 绘制飞行中的子弹（绿色大圆点）
+                    self._draw_point_camera(bullet.pos, selected_camera, Color.GREEN, 3)
 
     def _draw_point_camera(self, world_pos, camera, color, radius):
         resolution = (self.camera_screen_width, self.camera_screen_height)
@@ -278,6 +324,35 @@ class VisualizationManager:
             draw_pos = (int(camera_screen_pos[0]), int(camera_screen_pos[1]))
             pg.draw.circle(self.screen, color, draw_pos, radius)
         return camera_screen_pos
+
+    def _draw_armor_box_camera(self, armor, camera, color):
+        camera_screen_rect = pg.Rect(
+            self.camera_screen_center[0] - self.camera_screen_width // 2,
+            self.camera_screen_center[1] - self.camera_screen_height // 2,
+            self.camera_screen_width,
+            self.camera_screen_height
+        )
+        screen_points = []
+        for corner in armor.light_corners:
+            pos = world_to_camera_screen(
+                corner, camera,
+                self.camera_screen_center,
+                (self.camera_screen_width, self.camera_screen_height)
+            )
+            if pos is None:
+                return
+            screen_points.append(pos)
+        if len(screen_points) == 4:
+            # 创建与相机画面区域大小相同的透明表面
+            temp_surf = pg.Surface((camera_screen_rect.width, camera_screen_rect.height), pg.SRCALPHA)
+            # 将屏幕点转换为相对于临时表面的坐标
+            rel_points = [(p[0] - camera_screen_rect.left, p[1] - camera_screen_rect.top) for p in screen_points]
+            # 绘制半透明填充
+            pg.draw.polygon(temp_surf, (*color[:3], 80), rel_points)
+            # 将临时表面 blit 到相机画面区域
+            self.screen.blit(temp_surf, camera_screen_rect)
+            # 绘制边框
+            pg.draw.polygon(self.screen, color, screen_points, 2)
 
     def show_info_screen(self, true_robots, obs, pred, pnp_list):
         info_screen_rect = pg.Rect(

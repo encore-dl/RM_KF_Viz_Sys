@@ -22,12 +22,12 @@ class TrackedTarget:
         self.update_count += 1
 
 class MultiTargetTracker:
-    def __init__(self, max_lost_time=0.5, match_threshold=0.4, camera=None):
+    def __init__(self, max_lost_time=0.5, match_threshold=0.4, camera_manager=None):
         self.targets = []
         self.next_id = 0
         self.max_lost_time = max_lost_time
         self.match_threshold = match_threshold
-        self.camera = camera
+        self.camera_manager = camera_manager
 
     def push_observation(self, obs_list, t):
         # 1. 预测所有现有目标
