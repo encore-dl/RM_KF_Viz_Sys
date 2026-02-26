@@ -13,9 +13,15 @@ class DemoTracker4:
         self.fly_time = fly_time
         self.multi_tracker = MultiTargetTracker(camera_manager=camera_manager)
         self.ref_gen = ReferenceGenerator(camera_manager)
-        self.mpc = MPCController(
+        self.mpc_yaw = MPCController(
             dt=0.01, N=20,
+            q_theta=100., q_dtheta=10., r_alpha=0.01, alpha_max=50,
             theta_min=-1e9, theta_max=1e9
+        )
+        self.mpc_pitch = MPCController(
+            dt=0.01, N=20,
+            q_theta=100., q_dtheta=10., r_alpha=0.01, alpha_max=50,
+            theta_min=-np.pi / 2, theta_max=np.pi / 2
         )
         # 初始化射击决策器
         self.shoot_decider = ShootDecider(camera_manager, v0=30.0, fire_threshold=0.05, cooldown=0.1)
@@ -26,14 +32,18 @@ class DemoTracker4:
 
         if best_target is None:
             self._publish_prediction(None, t_stamp)
-            alpha = -10.0 * self.camera_manager.selected_camera.world_omg[2] if abs(self.camera_manager.selected_camera.world_omg[2]) >= 0.01 else 0.0
-            event_bus.publish('gimbal', {'alpha': alpha, 'timestamp': t_stamp})
+            yaw_alpha = -10.0 * self.camera_manager.selected_camera.world_omg[2] if abs(self.camera_manager.selected_camera.world_omg[2]) >= 0.01 else 0.0
+            pitch_alpha = -10.0 * self.camera_manager.selected_camera.world_omg[1] if abs(self.camera_manager.selected_camera.world_omg[2]) >= 0.01 else 0.0
+            event_bus.publish('gimbal_yaw', {'alpha': yaw_alpha, 'timestamp': t_stamp})
+            event_bus.publish('gimbal_pitch', {'alpha': pitch_alpha, 'timestamp': t_stamp})
             return
 
         # 生成参考轨迹（用于控制）
-        theta_ref, omega_ref, phi_ref = self.ref_gen.generate(best_target.ekf, t_stamp)
+        theta_ref, omega_ref, phi_ref, phi_omega_ref = self.ref_gen.generate(best_target.ekf, t_stamp)
         gimbal_yaw = self.camera_manager.selected_camera.world_rpy[2]
         gimbal_omg = self.camera_manager.selected_camera.world_omg[2]
+        gimbal_pitch = self.camera_manager.selected_camera.world_rpy[1]
+        gimbal_pitch_omg = self.camera_manager.selected_camera.world_omg[1]
 
         # 相位对齐
         if len(theta_ref) > 0:
@@ -46,11 +56,16 @@ class DemoTracker4:
                 k += 1 if adjusted > gimbal_yaw else -1
             theta_ref = theta_ref - 2 * np.pi * k
 
-        mpc_x0 = np.array([gimbal_yaw, gimbal_omg])
-        alpha = self.mpc.solve(x0=mpc_x0, theta_ref=theta_ref, omega_ref=omega_ref)
+        x0_yaw = np.array([gimbal_yaw, gimbal_omg])
+        alpha_yaw = self.mpc_yaw.solve(x0=x0_yaw, theta_ref=theta_ref, omega_ref=omega_ref)
 
-        event_bus.publish('draw', DrawText(f'alpha: {alpha:.2f}', (255, 255, 255)))
-        event_bus.publish('gimbal', {'alpha': alpha, 'timestamp': t_stamp})
+        x0_pitch = np.array([gimbal_pitch, gimbal_pitch_omg])
+        alpha_pitch = self.mpc_pitch.solve(x0=x0_pitch, theta_ref=phi_ref, omega_ref=phi_omega_ref)
+
+        event_bus.publish('draw', DrawText(f'alpha_yaw: {alpha_yaw:.2f}', (255, 255, 255)))
+        event_bus.publish('draw', DrawText(f'alpha_pitch: {alpha_pitch:.2f}', (255, 255, 255)))
+        event_bus.publish('gimbal_yaw', {'alpha': alpha_yaw, 'timestamp': t_stamp})
+        event_bus.publish('gimbal_pitch', {'alpha': alpha_pitch, 'timestamp': t_stamp})
 
         # 射击决策
         self.shoot_decider.update(best_target.ekf, t_stamp)

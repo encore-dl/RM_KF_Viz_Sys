@@ -2,9 +2,10 @@ import numpy as np
 import scipy.sparse as sparse
 import osqp
 
+
 class MPCController:
-    def __init__(self, dt, N, q_theta=100., q_dtheta=10., r_alpha=0.2,
-                 alpha_max=25, theta_min=-1e9, theta_max=1e9):
+    def __init__(self, dt, N, q_theta=100., q_dtheta=10., r_alpha=0.01,
+                 alpha_max=30, theta_min=-1e9, theta_max=1e9):
         self.dt = dt
         self.N = N
         self.nx = 2

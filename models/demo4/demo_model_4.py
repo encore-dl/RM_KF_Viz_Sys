@@ -164,6 +164,7 @@ class DemoModel4:
         return [pred_cx, pred_cy, pred_cz], pred_armor
 
     def predict_observation(self, k):
+        """返回预测的第k个装甲板的观测向量 [x,y,z,yaw] 及其协方差 S"""
         x = self.ekf.x
         P = self.ekf.P
         is_even = (k % 2 == 0)
@@ -181,37 +182,21 @@ class DemoModel4:
         c, s = np.cos(armor_yaw), np.sin(armor_yaw)
         H[0, 0] = 1.0
         H[0, 6] = -r * s
-        if is_even: H[0, 8] = c
-        else: H[0, 9] = c
+        if is_even:
+            H[0, 8] = c
+        else:
+            H[0, 9] = c
         H[1, 1] = 1.0
         H[1, 6] = r * c
-        if is_even: H[1, 8] = s
-        else: H[1, 9] = s
+        if is_even:
+            H[1, 8] = s
+        else:
+            H[1, 9] = s
         H[2, 2] = 1.0
         if not is_even: H[2, 10] = 1.0
         H[3, 6] = 1.0
         S = H @ P @ H.T + self.R
         return z_pred, S
-
-    def get_geometric_distance(self, obs_pos):
-        x = self.ekf.x
-        xc, yc, zc = x[0], x[1], x[2]
-        psi = x[6]
-        min_dist = float('inf')
-        for k in range(4):
-            is_even = (k % 2 == 0)
-            r = x[8] if is_even else x[9]
-            dz = x[10] if not is_even else 0.0
-            armor_yaw = psi + k * (np.pi / 2.0)
-            pred_ax = xc + r * np.cos(armor_yaw)
-            pred_ay = yc + r * np.sin(armor_yaw)
-            pred_az = zc + dz
-            dist = np.sqrt((obs_pos[0] - pred_ax)**2 +
-                           (obs_pos[1] - pred_ay)**2 +
-                           (obs_pos[2] - pred_az)**2)
-            if dist < min_dist:
-                min_dist = dist
-        return min_dist
 
     def get_all_armor_positions_at_time(self, dt):
         """预测未来 dt 秒后所有装甲板的世界坐标"""
@@ -235,3 +220,27 @@ class DemoModel4:
             az = pred_cz + h
             armors.append(np.array([ax, ay, az]))
         return armors
+
+    def get_geometric_distance(self, obs_pos):
+        """计算观测点到四个理论装甲板的最小欧氏距离"""
+        x = self.ekf.x
+        xc, yc, zc = x[0], x[1], x[2]
+        psi = x[6]
+        min_dist = float('inf')
+        for k in range(4):
+            is_even = (k % 2 == 0)
+            r = x[8] if is_even else x[9]
+            dz = x[10] if not is_even else 0.0
+            armor_yaw = psi + k * (np.pi / 2.0)
+            pred_ax = xc + r * np.cos(armor_yaw)
+            pred_ay = yc + r * np.sin(armor_yaw)
+            pred_az = zc + dz
+            dist = np.sqrt((obs_pos[0] - pred_ax)**2 +
+                           (obs_pos[1] - pred_ay)**2 +
+                           (obs_pos[2] - pred_az)**2)
+            if dist < min_dist:
+                min_dist = dist
+        return min_dist
+
+
+

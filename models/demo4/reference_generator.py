@@ -1,21 +1,22 @@
 import numpy as np
 
-from core.algorithms.math import limit_rad
-
-
 class ReferenceGenerator:
-    def __init__(self, camera_manager, dt=0.01, N=20, yaw_offset=0.0, pitch_offset=0.0, spin_thresh=2.0):
+    def __init__(self, camera_manager, dt=0.01, N=20, yaw_offset=0.0, pitch_offset=0.0,
+                 spin_thresh=12.0, lock_bias=0.2):
         self.camera_manager = camera_manager
         self.dt = dt
         self.N = N
         self.yaw_offset = yaw_offset
         self.pitch_offset = pitch_offset
         self.spin_thresh = spin_thresh
+        self.lock_bias = lock_bias          # 给锁定装甲板的额外分数加成
+        self.locked_armor_id = None         # 当前锁定的装甲板ID（0-3）
 
     def generate(self, target_ekf, t0):
         theta_ref = np.zeros(self.N)
         omega_ref = np.zeros(self.N)
         phi_ref = np.zeros(self.N)
+        phi_omega_ref = np.zeros(self.N)
 
         cam_pos = self.camera_manager.selected_camera.world_pos
         x_curr = target_ekf.ekf.x.copy()
@@ -31,7 +32,7 @@ class ReferenceGenerator:
             ra, rb, dz = x_curr[8], x_curr[9], x_curr[10]
 
             if abs(current_omega) < self.spin_thresh:
-                # 慢速旋转：选择最佳装甲板
+                # 慢速旋转：选择最佳装甲板（带锁定偏置）
                 armors_pos = []
                 for k in range(4):
                     is_even = (k % 2 == 0)
@@ -45,6 +46,7 @@ class ReferenceGenerator:
 
                 best_armor_pos = None
                 best_score = -np.inf
+                best_id = None
                 for k, pos in enumerate(armors_pos):
                     armor_yaw = pred_psi + k * np.pi / 2.0
                     normal = np.array([np.cos(armor_yaw), np.sin(armor_yaw), 0])
@@ -57,23 +59,34 @@ class ReferenceGenerator:
                     if cos_alpha <= 0:
                         continue
                     score = cos_alpha / (dist * dist)
+                    # 如果当前是锁定的装甲板，给予额外偏置
+                    if self.locked_armor_id is not None and k == self.locked_armor_id:
+                        score += self.lock_bias
                     if score > best_score:
                         best_score = score
                         best_armor_pos = pos
+                        best_id = k
+
+                if best_id is not None:
+                    self.locked_armor_id = best_id
+                else:
+                    # 没有可见装甲板，清除锁定
+                    self.locked_armor_id = None
 
                 if best_armor_pos is None:
-                    # 没有可见装甲板时，使用面向枪口的点（快速模式）
+                    # 保底：使用面向枪口的点
                     yaw_to_self = np.arctan2(-pred_yc, -pred_xc)
                     armor_yaw = yaw_to_self
                     best_armor_pos = np.array([
                         pred_xc + ra * np.cos(armor_yaw),
                         pred_yc + ra * np.sin(armor_yaw),
                         pred_zc
-                    ])  # 简化，使用平均半径
+                    ])
+                    self.locked_armor_id = None
             else:
-                # 快速旋转：瞄准面向枪口的点
+                # 快速旋转：瞄准面向枪口的点（清除锁定）
+                self.locked_armor_id = None
                 yaw_to_self = np.arctan2(-pred_yc, -pred_xc)
-                # 使用平均半径（或 ra）计算装甲板位置
                 r_mean = (ra + rb) / 2
                 armor_yaw = yaw_to_self
                 best_armor_pos = np.array([
@@ -90,7 +103,10 @@ class ReferenceGenerator:
             dist_xy = np.sqrt(dx*dx + dy*dy)
             phi_des = np.arctan2(dz, dist_xy)
 
-            # 角速度（仍使用目标中心速度近似）
+            theta_ref[i] = theta_des + self.yaw_offset
+            phi_ref[i] = phi_des + self.pitch_offset
+
+            # 角速度（目标中心速度近似）
             pred_vx = x_curr[3]
             pred_vy = x_curr[4]
             r2 = dx*dx + dy*dy
@@ -98,14 +114,18 @@ class ReferenceGenerator:
                 omega_des = (dx * pred_vy - dy * pred_vx) / r2
             else:
                 omega_des = 0.0
-
-            theta_ref[i] = theta_des + self.yaw_offset
             omega_ref[i] = omega_des
-            phi_ref[i] = phi_des + self.pitch_offset
 
-        # 角度解缠
+        # 计算 pitch 角速度（中心差分）
+        for i in range(1, self.N - 1):
+            phi_omega_ref[i] = (phi_ref[i + 1] - phi_ref[i - 1]) / (2 * self.dt)
+        if self.N > 1:
+            phi_omega_ref[0] = (phi_ref[1] - phi_ref[0]) / self.dt
+            phi_omega_ref[-1] = (phi_ref[-1] - phi_ref[-2]) / self.dt
+
+        # yaw 角度解缠
         theta_ref = self._unwrap_angle(theta_ref)
-        return theta_ref, omega_ref, phi_ref
+        return theta_ref, omega_ref, phi_ref, phi_omega_ref
 
     @staticmethod
     def _unwrap_angle(angle_seq):

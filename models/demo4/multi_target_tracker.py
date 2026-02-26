@@ -16,10 +16,11 @@ class TrackedTarget:
             self.ekf.predict(dt)
 
     def update(self, obs, t):
-        # 注意：外部已predict，这里只做更新
+        # 外部已调用predict，此处只做更新
         self.ekf.update(obs.world_pos, obs.world_rpy[2], t)
         self.last_update = t
         self.update_count += 1
+
 
 class MultiTargetTracker:
     def __init__(self, max_lost_time=0.5, match_threshold=0.4, camera_manager=None):
@@ -30,7 +31,7 @@ class MultiTargetTracker:
         self.camera_manager = camera_manager
 
     def push_observation(self, obs_list, t):
-        # 1. 预测所有现有目标
+        # 1. 预测所有现有目标到当前时刻
         for target in self.targets:
             dt = t - target.last_update
             target.predict(dt)
@@ -44,6 +45,7 @@ class MultiTargetTracker:
             for j, target in enumerate(self.targets):
                 if target.robot_type != obs.robot_type:
                     continue
+                # 使用几何距离（观测点到目标四个理论装甲板的最短距离）
                 dist = target.ekf.get_geometric_distance(obs.world_pos)
                 if dist < min_dist:
                     min_dist = dist
@@ -51,7 +53,7 @@ class MultiTargetTracker:
             if best_target_idx is not None:
                 matches[best_target_idx].append(i)
 
-        # 3. 执行更新
+        # 3. 用匹配的观测更新对应目标
         used_obs_indices = set()
         for j, obs_indices in matches.items():
             target = self.targets[j]
@@ -61,7 +63,7 @@ class MultiTargetTracker:
                 target.matched_armors_count += 1
                 used_obs_indices.add(i)
 
-        # 4. 创建新目标
+        # 4. 未匹配的观测创建新目标
         for i in range(len(obs_list)):
             if i not in used_obs_indices:
                 self._create_target(obs_list[i], t)
@@ -84,6 +86,7 @@ class MultiTargetTracker:
     def get_best_target(self):
         if not self.targets:
             return None
+        # 按更新次数排序，选择最稳定的目标
         sorted_targets = sorted(
             self.targets,
             key=lambda t: t.update_count,

@@ -34,10 +34,12 @@ class Simulator:
         self.tracker_manager = TrackerManager()
 
         self.bullets = []
-        self.last_alp = 0.
+        self.last_alp_yaw = 0.
+        self.last_alp_pitch = 0.
         self.ctrl_accum = 0.
 
-        event_bus.subscribe('gimbal', self._on_gimbal)
+        event_bus.subscribe('gimbal_yaw', self._on_gimbal_yaw)
+        event_bus.subscribe('gimbal_pitch', self._on_gimbal_pitch)
         event_bus.subscribe('fire', self._on_fire_command)
 
     def run_simulator(self):
@@ -61,7 +63,7 @@ class Simulator:
         if self.camera_manager.selected_camera and self.camera_manager.selected_camera.auto_aiming:
             self.ctrl_accum += self.dt
             while self.ctrl_accum >= 0.01:
-                self.camera_manager.selected_camera.apply_control(self.last_alp, 0.01)
+                self.camera_manager.selected_camera.apply_control(self.last_alp_yaw, self.last_alp_pitch, 0.01)
                 self.ctrl_accum -= 0.01
 
         self.clock.tick(self.simulator_fps)
@@ -102,8 +104,11 @@ class Simulator:
             self.selected_entity = self.camera_manager.cameras[0]
             self.camera_manager.selected_camera = self.selected_entity
 
-    def _on_gimbal(self, data):
-        self.last_alp = data['alpha']
+    def _on_gimbal_yaw(self, data):
+        self.last_alp_yaw = data['alpha']
+
+    def _on_gimbal_pitch(self, data):
+        self.last_alp_pitch = data['alpha']
 
     def _on_fire_command(self, data):
         pos = data['pos']

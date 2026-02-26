@@ -110,8 +110,14 @@ class Camera(Rigid):
     def switch_auto_aiming(self):
         self.auto_aiming = not self.auto_aiming
 
-    def apply_control(self, alpha, dt):
-        self.world_alp[2] = alpha
+    def apply_control(self, alpha_yaw, alpha_pitch, dt):
+        self.world_alp[2] = alpha_yaw
         self.world_omg[2] += self.world_alp[2] * dt
         self.world_rpy[2] += self.world_omg[2] * dt
+
+        self.world_alp[1] = alpha_pitch
+        self.world_omg[1] += self.world_alp[1] * dt
+        self.world_rpy[1] += self.world_omg[1] * dt
+        # 限制 pitch 范围（例如 ±90°）
+        self.world_rpy[1] = np.clip(self.world_rpy[1], -np.pi/2, np.pi/2)
 
