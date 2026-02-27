@@ -5,26 +5,27 @@ from simulation.dataflow import Prediction, DrawText
 from models.demo4.multi_target_tracker import MultiTargetTracker
 from models.demo4.reference_generator import ReferenceGenerator
 from models.demo4.mpc_controller import MPCController
-from simulation.managers.system_manager.shoot_decider import ShootDecider  # 新增
+from simulation.managers.system_manager.shoot_decider import ShootDecider
+
 
 class DemoTracker4:
-    def __init__(self, camera_manager, fly_time=0.4):
-        self.camera_manager = camera_manager
+    def __init__(self, robot_manager, bullet_manager, fly_time=0.4):
+        self.robot_manager = robot_manager
+        self.bullet_manager = bullet_manager
         self.fly_time = fly_time
-        self.multi_tracker = MultiTargetTracker(camera_manager=camera_manager)
-        self.ref_gen = ReferenceGenerator(camera_manager)
+        self.multi_tracker = MultiTargetTracker(robot_manager=robot_manager)
+        self.ref_gen = ReferenceGenerator(robot_manager)
         self.mpc_yaw = MPCController(
             dt=0.01, N=20,
-            q_theta=100., q_dtheta=10., r_alpha=0.01, alpha_max=50,
+            q_theta=100., q_dtheta=10., r_alpha=0.01, alpha_max=35,
             theta_min=-1e9, theta_max=1e9
         )
         self.mpc_pitch = MPCController(
             dt=0.01, N=20,
-            q_theta=100., q_dtheta=10., r_alpha=0.01, alpha_max=50,
+            q_theta=100., q_dtheta=10., r_alpha=0.01, alpha_max=35,
             theta_min=-np.pi / 2, theta_max=np.pi / 2
         )
-        # 初始化射击决策器
-        self.shoot_decider = ShootDecider(camera_manager, v0=30.0, fire_threshold=0.05, cooldown=0.1)
+        self.shoot_decider = ShootDecider(robot_manager, bullet_manager, v0=30.0, fire_threshold=0.05, cooldown=0.1)
 
     def track(self, obs_armors, dt, t_stamp):
         self.multi_tracker.push_observation(obs_armors, t_stamp)
@@ -32,45 +33,46 @@ class DemoTracker4:
 
         if best_target is None:
             self._publish_prediction(None, t_stamp)
-            yaw_alpha = -10.0 * self.camera_manager.selected_camera.world_omg[2] if abs(self.camera_manager.selected_camera.world_omg[2]) >= 0.01 else 0.0
-            pitch_alpha = -10.0 * self.camera_manager.selected_camera.world_omg[1] if abs(self.camera_manager.selected_camera.world_omg[2]) >= 0.01 else 0.0
-            event_bus.publish('gimbal_yaw', {'alpha': yaw_alpha, 'timestamp': t_stamp})
-            event_bus.publish('gimbal_pitch', {'alpha': pitch_alpha, 'timestamp': t_stamp})
+            event_bus.publish('gimbal_yaw', {'alpha': 0.0, 'timestamp': t_stamp})
+            event_bus.publish('gimbal_pitch', {'alpha': 0.0, 'timestamp': t_stamp})
             return
 
-        # 生成参考轨迹（用于控制）
-        theta_ref, omega_ref, phi_ref, phi_omega_ref = self.ref_gen.generate(best_target.ekf, t_stamp)
-        gimbal_yaw = self.camera_manager.selected_camera.world_rpy[2]
-        gimbal_omg = self.camera_manager.selected_camera.world_omg[2]
-        gimbal_pitch = self.camera_manager.selected_camera.world_rpy[1]
-        gimbal_pitch_omg = self.camera_manager.selected_camera.world_omg[1]
+        self.shoot_decider.update(best_target.ekf, t_stamp)
+        latest_pitch = self.shoot_decider.latest_pitch
 
-        # 相位对齐
+        theta_ref, omega_ref, phi_ref, phi_omega_ref = self.ref_gen.generate(best_target.ekf, t_stamp)
+        # if abs(latest_pitch) > 1e-6:
+        #     phi_ref[:] = latest_pitch
+        #     phi_omega_ref[:] = 0.0  # 假设期望 pitch 恒定，角速度为 0
+
+        camera = self.robot_manager.selected_robot.get_camera()
+        gimbal_yaw = camera.world_rpy[2]
+        gimbal_omg = camera.world_omg[2]
+        gimbal_pitch = camera.world_rpy[1]
+        gimbal_pitch_omg = camera.world_omg[1]
+
+        # 相位对齐（yaw 解缠）
         if len(theta_ref) > 0:
             diff = theta_ref[0] - gimbal_yaw
-            # 计算使 theta_ref 调整后与 gimbal_yaw 最接近的圈数
             k = np.round(diff / (2 * np.pi)).astype(int)
-            # 但需确保调整后误差在 (-π, π] 内
             adjusted = theta_ref[0] - 2 * np.pi * k
             if abs(adjusted - gimbal_yaw) > np.pi:
                 k += 1 if adjusted > gimbal_yaw else -1
             theta_ref = theta_ref - 2 * np.pi * k
 
         x0_yaw = np.array([gimbal_yaw, gimbal_omg])
-        alpha_yaw = self.mpc_yaw.solve(x0=x0_yaw, theta_ref=theta_ref, omega_ref=omega_ref)
+        theta_des, omega_des, alpha_yaw = self.mpc_yaw.solve(x0=x0_yaw, theta_ref=theta_ref, omega_ref=omega_ref)
 
         x0_pitch = np.array([gimbal_pitch, gimbal_pitch_omg])
-        alpha_pitch = self.mpc_pitch.solve(x0=x0_pitch, theta_ref=phi_ref, omega_ref=phi_omega_ref)
+        pitch_des, pitch_omega_des, alpha_pitch = self.mpc_pitch.solve(x0=x0_pitch, theta_ref=phi_ref, omega_ref=phi_omega_ref)
+
+        # 设置云台期望值
+        gimbal = self.robot_manager.selected_robot.gimbal
+        gimbal.set_target(theta_des, omega_des, alpha_yaw, pitch_des, pitch_omega_des, alpha_pitch)
 
         event_bus.publish('draw', DrawText(f'alpha_yaw: {alpha_yaw:.2f}', (255, 255, 255)))
         event_bus.publish('draw', DrawText(f'alpha_pitch: {alpha_pitch:.2f}', (255, 255, 255)))
-        event_bus.publish('gimbal_yaw', {'alpha': alpha_yaw, 'timestamp': t_stamp})
-        event_bus.publish('gimbal_pitch', {'alpha': alpha_pitch, 'timestamp': t_stamp})
 
-        # 射击决策
-        self.shoot_decider.update(best_target.ekf, t_stamp)
-
-        # 发布预测可视化（使用预设飞行时间）
         pred_center, pred_armor = best_target.ekf.get_pred_pos(self.fly_time)
         pred = Prediction(
             center=pred_center,

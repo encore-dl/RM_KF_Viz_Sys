@@ -3,10 +3,6 @@ import pygame as pg
 from simulation.managers.system_manager.keyboard_manager import KeyboardManager
 from simulation.simulator import Simulator
 
-from models.demo.demo_tracker import DemoTracker
-from models.demo2.demo_tracker_2 import DemoTracker2
-from models.demo3.demo_tracker_3 import DemoTJURMTracker
-from models.imm1.imm_tracker_1 import IMMTracker1
 from models.demo4.demo_tracker_4 import DemoTracker4
 
 RESET = True
@@ -19,8 +15,8 @@ def main():
     simulator = Simulator()
     keyboard_manager = KeyboardManager(simulator)
 
-    simulator.tracker_manager.set_tracker(DemoTracker4(simulator.camera_manager))
-    # simulator.tracker_manager.set_tracker(DemoTracker2())
+    tracker = DemoTracker4(simulator.robot_manager, simulator.bullet_manager)
+    simulator.tracker_manager.set_tracker(tracker)
     simulator.tracker_manager.run_tracker_thread()
 
     running = True
@@ -48,4 +44,3 @@ if __name__ == '__main__':
     while RESET is True:
         RESET = False
         main()
-

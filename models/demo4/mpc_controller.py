@@ -133,7 +133,7 @@ class MPCController:
         n_vars = self.P.shape[0]
         q = np.zeros(n_vars)
         for i in range(self.N):
-            q[i*2] = -2 * self.q_theta * theta_ref[i]
+            q[i * 2] = -2 * self.q_theta * theta_ref[i]
             if omega_ref is not None:
                 q[i * 2 + 1] = -2 * self.q_dtheta * omega_ref[i]
             else:
@@ -147,12 +147,19 @@ class MPCController:
         if theta_min is not None:
             offset = self.A_eq.shape[0]
             for i in range(self.N):
-                self.l[offset + 2*i] = theta_min[i]
-                self.u[offset + 2*i + 1] = theta_max[i]
+                self.l[offset + 2 * i] = theta_min[i]
+                self.u[offset + 2 * i + 1] = theta_max[i]
 
         self.prob.update(q=q, l=self.l, u=self.u)
         res = self.prob.solve()
         if res.info.status == 'solved':
-            return res.x[self.N * self.nx]
+            # 第一个时刻的期望角度 = theta_ref[0]
+            theta_des = theta_ref[0]
+            # 第一个时刻的期望角速度 = omega_ref[0] 或计算得出
+            omega_des = omega_ref[0] if omega_ref is not None else 0.0
+            # 第一个控制量（加速度）
+            alpha_des = res.x[self.N * self.nx]
+            return theta_des, omega_des, alpha_des
         else:
-            return 0.0
+            return 0.0, 0.0, 0.0
+

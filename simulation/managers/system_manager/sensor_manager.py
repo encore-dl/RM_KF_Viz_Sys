@@ -8,28 +8,31 @@ from simulation.dataflow import ArmorObservation, Observation, PnPResult
 
 
 class SensorManager:
-    def __init__(self, camera_manager):
-        self.camera_manager = camera_manager
+    def __init__(self, robot_manager):
+        self.robot_manager = robot_manager
         self.pos_noise_sigma = 0.00
         self.rpy_noise_sigma = 0.0
         self.pixel_noise_sigma = 0.
 
-    def get_obs(self, robots):
-        camera = self.camera_manager.selected_camera
-        
+    def get_obs(self):
+        """生成观测，使用当前选中机器人的相机"""
+        if not self.robot_manager.robots or self.robot_manager.selected_robot is None:
+            return
+        camera = self.robot_manager.selected_robot.get_camera()
+
         obs_armors = []
         pnp_results = []
 
-        for robot in robots:
-            for armor in robot.armors:
-                # 检查法向量是否朝向相机
-                if not camera.is_armor_visible(armor.world_pos, robot.world_pos):
+        for robot in self.robot_manager.robots:
+            if robot == self.robot_manager.selected_robot:
+                continue  # 不自瞄自己
+            for armor in robot.get_armors():
+                if not camera.is_armor_visible(armor.world_pos, robot.chassis.world_pos):
                     continue
-                # 检查装甲板中心是否在相机视野内
                 if camera.world_to_pixel(armor.world_pos) is None:
                     continue
 
-                # 计算角点和像素点
+                # 计算角点
                 if armor.armor_size == 'large':
                     w, h = armor.light_bar_interval, armor.light_bar_length
                 else:
@@ -60,7 +63,6 @@ class SensorManager:
 
                 ordered_pixels = np.array(pixel_points, dtype=np.float32)
 
-                # PnP求解
                 K = camera.get_intrinsic_matrix()
                 D = np.zeros(5)
                 R_head2world = euler_to_rotation_matrix(camera.world_rpy)
@@ -85,17 +87,17 @@ class SensorManager:
                 pos_noise = np.random.normal(0, self.pos_noise_sigma, 3)
                 rpy_noise = np.random.normal(0, self.rpy_noise_sigma, 3)
 
-                obs_armor = ArmorObservation(
-                    armor_id=armor.armor_id,
-                    robot_type=armor.robot_type,
-                    world_pos=calc_pos + pos_noise,
-                    world_rpy=calc_rpy + rpy_noise,
-                    armor_size=armor.armor_size,
-                    pixel_points=ordered_pixels
-                )
-                obs_armors.append(obs_armor)
+                if calc_pos is not None:
+                    obs_armor = ArmorObservation(
+                        armor_id=armor.armor_id,
+                        robot_type=armor.robot_type,
+                        world_pos=calc_pos + pos_noise,
+                        world_rpy=calc_rpy + rpy_noise,
+                        armor_size=armor.armor_size,
+                        pixel_points=ordered_pixels
+                    )
+                    obs_armors.append(obs_armor)
 
-                if calc_pos is not None and not np.isnan(calc_pos).any():
                     pnp_result = PnPResult(
                         pnp_pos=calc_pos,
                         pnp_rpy=calc_rpy,
@@ -110,7 +112,3 @@ class SensorManager:
         event_bus.publish('obs', obs)
         if pnp_results:
             event_bus.publish('pnp', pnp_results)
-
-
-
-

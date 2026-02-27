@@ -1,16 +1,17 @@
 import numpy as np
 
+
 class ReferenceGenerator:
-    def __init__(self, camera_manager, dt=0.01, N=20, yaw_offset=0.0, pitch_offset=0.0,
+    def __init__(self, robot_manager, dt=0.01, N=50, yaw_offset=0.0, pitch_offset=0.0,
                  spin_thresh=12.0, lock_bias=0.2):
-        self.camera_manager = camera_manager
+        self.robot_manager = robot_manager
         self.dt = dt
         self.N = N
         self.yaw_offset = yaw_offset
         self.pitch_offset = pitch_offset
         self.spin_thresh = spin_thresh
-        self.lock_bias = lock_bias          # 给锁定装甲板的额外分数加成
-        self.locked_armor_id = None         # 当前锁定的装甲板ID（0-3）
+        self.lock_bias = lock_bias
+        self.locked_armor_id = None
 
     def generate(self, target_ekf, t0):
         theta_ref = np.zeros(self.N)
@@ -18,13 +19,16 @@ class ReferenceGenerator:
         phi_ref = np.zeros(self.N)
         phi_omega_ref = np.zeros(self.N)
 
-        cam_pos = self.camera_manager.selected_camera.world_pos
+        if self.robot_manager.selected_robot is None:
+            return theta_ref, omega_ref, phi_ref, phi_omega_ref
+
+        camera = self.robot_manager.selected_robot.get_camera()
+        cam_pos = camera.world_pos
         x_curr = target_ekf.ekf.x.copy()
-        current_omega = x_curr[7]  # 当前角速度
+        current_omega = x_curr[7]
 
         for i in range(self.N):
             dt = i * self.dt
-            # 外推状态
             pred_xc = x_curr[0] + x_curr[3] * dt
             pred_yc = x_curr[1] + x_curr[4] * dt
             pred_zc = x_curr[2] + x_curr[5] * dt
@@ -32,7 +36,6 @@ class ReferenceGenerator:
             ra, rb, dz = x_curr[8], x_curr[9], x_curr[10]
 
             if abs(current_omega) < self.spin_thresh:
-                # 慢速旋转：选择最佳装甲板（带锁定偏置）
                 armors_pos = []
                 for k in range(4):
                     is_even = (k % 2 == 0)
@@ -59,7 +62,6 @@ class ReferenceGenerator:
                     if cos_alpha <= 0:
                         continue
                     score = cos_alpha / (dist * dist)
-                    # 如果当前是锁定的装甲板，给予额外偏置
                     if self.locked_armor_id is not None and k == self.locked_armor_id:
                         score += self.lock_bias
                     if score > best_score:
@@ -70,11 +72,9 @@ class ReferenceGenerator:
                 if best_id is not None:
                     self.locked_armor_id = best_id
                 else:
-                    # 没有可见装甲板，清除锁定
                     self.locked_armor_id = None
 
                 if best_armor_pos is None:
-                    # 保底：使用面向枪口的点
                     yaw_to_self = np.arctan2(-pred_yc, -pred_xc)
                     armor_yaw = yaw_to_self
                     best_armor_pos = np.array([
@@ -84,7 +84,6 @@ class ReferenceGenerator:
                     ])
                     self.locked_armor_id = None
             else:
-                # 快速旋转：瞄准面向枪口的点（清除锁定）
                 self.locked_armor_id = None
                 yaw_to_self = np.arctan2(-pred_yc, -pred_xc)
                 r_mean = (ra + rb) / 2
@@ -95,18 +94,16 @@ class ReferenceGenerator:
                     pred_zc
                 ])
 
-            # 计算期望角度
             dx = best_armor_pos[0] - cam_pos[0]
             dy = best_armor_pos[1] - cam_pos[1]
             dz = best_armor_pos[2] - cam_pos[2]
             theta_des = np.arctan2(dy, dx)
             dist_xy = np.sqrt(dx*dx + dy*dy)
-            phi_des = np.arctan2(dz, dist_xy)
+            phi_des = -np.arctan2(dz, dist_xy)
 
             theta_ref[i] = theta_des + self.yaw_offset
             phi_ref[i] = phi_des + self.pitch_offset
 
-            # 角速度（目标中心速度近似）
             pred_vx = x_curr[3]
             pred_vy = x_curr[4]
             r2 = dx*dx + dy*dy
@@ -116,14 +113,12 @@ class ReferenceGenerator:
                 omega_des = 0.0
             omega_ref[i] = omega_des
 
-        # 计算 pitch 角速度（中心差分）
         for i in range(1, self.N - 1):
             phi_omega_ref[i] = (phi_ref[i + 1] - phi_ref[i - 1]) / (2 * self.dt)
         if self.N > 1:
             phi_omega_ref[0] = (phi_ref[1] - phi_ref[0]) / self.dt
             phi_omega_ref[-1] = (phi_ref[-1] - phi_ref[-2]) / self.dt
 
-        # yaw 角度解缠
         theta_ref = self._unwrap_angle(theta_ref)
         return theta_ref, omega_ref, phi_ref, phi_omega_ref
 
