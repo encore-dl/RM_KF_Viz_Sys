@@ -36,10 +36,9 @@ class ShootDecider:
         if dist < 1e-6:
             return False
         fly_time_est = dist / self.v0
-        print(f"fly_time_est: {fly_time_est}")
 
         # 使用装甲板选择器获取未来时刻的最佳装甲板
-        armor_id, armor_pos = self.selector.select_armor(target, gun_rel_pos, fly_time_est)
+        armor_id, armor_pos = self.selector.select_armor(target, gun_rel_pos, fly_time_est + self.fire_delay)
 
         # 弹道解算
         target_rel = armor_pos - gun_rel_pos
@@ -70,19 +69,13 @@ class ShootDecider:
             return False
 
         # 用精确飞行时间重新预测装甲板
-        armor_id, armor_pos = self.selector.select_armor(target, gun_rel_pos, fly_time)
+        armor_id, armor_pos = self.selector.select_armor(target, gun_rel_pos, fly_time + self.fire_delay)
         target_rel = armor_pos - gun_rel_pos
         fly_time, pitch = self.traj_solver.solve(v0, target_rel, pitch)  # 以上次 pitch 为初值
         if fly_time is None or pitch is None:
             return False
-        # armor_id, armor_pos = self.selector.select_armor(target, gun_rel_pos, fly_time)
-        # target_rel = armor_pos - gun_rel_pos
-        # fly_time, pitch = self.traj_solver.solve(v0, target_rel, pitch)  # 以上次 pitch 为初值
-        # if fly_time is None or pitch is None:
-        #     return False
 
-        # self.total_delay = fly_time
-        self.total_delay = fly_time + self.fire_delay
+        self.total_delay = fly_time
 
         desired_yaw = np.arctan2(target_rel[1], target_rel[0])
         desired_pitch = -pitch

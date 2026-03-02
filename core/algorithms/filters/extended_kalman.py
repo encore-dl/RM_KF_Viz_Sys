@@ -44,21 +44,6 @@ class ExtendedKalmanFilter:
         self.recent_nees_values = deque(maxlen=self.window_size)
         self.recent_nees_failures = deque(maxlen=self.window_size)
 
-        self.data = {
-            "residual_yaw": 0,
-            "residual_pitch": 0,
-            "residual_distance": 0,
-            "residual_angle": 0,
-            "nis": 0,
-            "nees": 0,
-            "nis_fail": False,
-            "nees_fail": False,
-            "recent_nis_failures": 0,
-            "recent_nees_failures": 0,
-            "nis_pass_rate": 0.0,
-            "nees_pass_rate": 0.0
-        }
-
         # 统计阈值 (95% 置信度)
         self.nis_threshold = 9.488  # 卡方检验，自由度=4
         self.nees_threshold = 19.675  # 卡方检验，自由度=11 (状态维度)
@@ -105,15 +90,13 @@ class ExtendedKalmanFilter:
         I = np.eye(self.state_dim)
         self.P = (I - K @ H) @ self.P @ (I - K @ H).T + K @ R @ K.T
 
-        self._evaluate_performance(y, S, x_true)
+        self._eval(y, S, x_true)
 
-    def _evaluate_performance(self, y, S, x_true=None):
+    def _eval(self, y, S, x_true=None):
         # NIS计算
         nis = y.T @ np.linalg.pinv(S) @ y
         nis_fail = nis > self.nis_threshold
-
         self.recent_nis_failures.append(nis_fail)
-        nis_failure_rate = sum(self.recent_nis_failures) / len(self.recent_nis_failures)
 
         # NEES计算 (如果有真实状态)
         nees = 0
@@ -122,25 +105,14 @@ class ExtendedKalmanFilter:
             error = x_true - self.x
             nees = error.T @ np.linalg.inv(self.P) @ error
             nees_fail = nees > self.nees_threshold
-
             self.recent_nees_values.append(nees)
             self.recent_nees_failures.append(nees_fail)
-            nees_failure_rate = sum(self.recent_nees_failures) / len(self.recent_nees_failures)
-        else:
-            nees_failure_rate = 0.0
 
-        # 更新性能数据
-        self.data.update({
-            "residual_yaw": y[0] if len(y) > 0 else 0,
-            "residual_pitch": y[1] if len(y) > 1 else 0,
-            "residual_distance": y[2] if len(y) > 2 else 0,
-            "residual_angle": y[3] if len(y) > 3 else 0,
-            "nis": nis,
-            "nees": nees,
-            "nis_fail": nis_fail,
-            "nees_fail": nees_fail,
-            "recent_nis_failures": sum(self.recent_nis_failures),
-            "recent_nees_failures": sum(self.recent_nees_failures),
-            "nis_pass_rate": 1.0 - nis_failure_rate,
-            "nees_pass_rate": 1.0 - nees_failure_rate if x_true is not None else 0.0
-        })
+    def get_nis_fail_rate(self):
+        if len(self.recent_nis_failures) == 0:
+            return 0
+        nis_fail = sum(self.recent_nis_failures) / len(self.recent_nis_failures)
+        return nis_fail
+
+
+

@@ -42,7 +42,7 @@ class Gimbal(Rigid):
 
         # 俯仰轴（与偏航相同，但可根据实际情况微调）
         self.pitch_pid = CascadedPID(
-            outer_params=PIDParams(kp=20, ki=0.0, kd=0.1,
+            outer_params=PIDParams(kp=10, ki=0.0, kd=0.1,
                                    max_output=20.0, max_integral=0.0),
             inner_params=PIDParams(kp=40.0, ki=1.0, kd=0.0,
                                    max_output=80.0, max_integral=0.0)

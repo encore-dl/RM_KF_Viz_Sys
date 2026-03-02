@@ -8,7 +8,7 @@ class MotionConfig:
     R_STEP_SLOW = 2.0     # 慢速旋转加速度步长（底盘）
     R_STEP_FAST = 8.0     # 快速旋转（小陀螺）
     G_STEP_SLOW = 2.0     # 云台偏航加速度步长
-    G_STEP_PITCH = 2.0    # 云台俯仰加速度步长
+    G_STEP_PITCH = 0.2    # 云台俯仰加速度步长
 
 
 @dataclass

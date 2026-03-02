@@ -307,3 +307,30 @@ class DemoModel4:
             if dist < min_dist:
                 min_dist = dist
         return min_dist
+
+    def diverged(self):
+        if not self.is_init:
+            return True
+
+        x = self.ekf.x
+        ra = x[8]
+        if ra < 0.1 or ra > 0.5:
+            return True
+        rb = x[9]
+        if rb < 0.1 or rb > 0.5:
+            return True
+
+        if abs(x[3]) > 10 or abs(x[4]) > 10:
+            return True
+
+        if self.ekf.get_nis_fail_rate() > self.ekf.nis_threshold:
+            return True
+
+        return False
+
+
+
+
+
+
+

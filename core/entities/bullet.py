@@ -30,6 +30,7 @@ class Bullet:
     def update(self, dt):
         """欧拉积分更新位置"""
         v = np.linalg.norm(self.vel)
+        # acc_drag = np.zeros(3)
         if v > 1e-6:
             F_drag = 0.5 * self.rho_air * self.A * self.Cd * v ** 2
             acc_drag = -F_drag / self.mass * (self.vel / v)

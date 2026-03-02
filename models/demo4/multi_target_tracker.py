@@ -15,11 +15,22 @@ class TrackedTarget:
         self.last_match_id = 0
         self.jumped = False
 
+        self.state = 'detecting'
+        self.detect_count = 0
+        self.lost_count = 0
+        self.min_detect_count = 3
+        self.max_lost_count = 10
+
     def predict(self, dt):
         if dt > 0:
             self.ekf.predict(dt)
 
     def update(self, obs, t):
+        if self.ekf.diverged():
+            print('diverged')
+            self._reset()
+            return
+
         self.ekf.update(obs.rel_pos, obs.rel_rpy[2], t)
         if self.ekf.match_id != self.last_match_id:
             self.jumped = True
@@ -28,6 +39,43 @@ class TrackedTarget:
         self.last_match_id = self.ekf.match_id
         self.last_update = t
         self.update_count += 1
+
+        if self.state == 'lost':
+            self.state = 'detecting'
+            self.detect_count = 1
+            self.lost_count = 0
+        elif self.state == 'detecting':
+            self.detect_count += 1
+            if self.detect_count >= self.min_detect_count:
+                self.state = 'tracking'
+        elif self.state == 'tracking':
+            self.lost_count = 0
+        elif self.state == 'temp_lost':
+            self.state = 'tracking'
+            self.lost_count = 0
+
+    def on_missing(self):
+        if self.state == 'tracking':
+            self.lost_count += 1
+            if self.lost_count > self.max_lost_count:
+                self.state = 'lost'
+            else:
+                self.state = 'temp_lost'
+        elif self.state == 'detecting':
+            self.state = 'lost'
+        elif self.state == 'temp_lost':
+            self.lost_count += 1
+            if self.lost_count > self.max_lost_count:
+                self.state = 'lost'
+
+    def is_active(self):
+        return self.state in ('detecting', 'tracking', 'temp_lost')
+
+    def _reset(self):
+        self.state = 'lost'
+        self.detect_count = 0
+        self.lost_count = 0
+        self.ekf.is_init = False   # 强制重新初始化
 
     def get_pred_pos(self, dt, self_rel_pos, armor_selector):
         if not self.ekf.is_init:
@@ -79,30 +127,30 @@ class MultiTargetTracker:
                 target.matched_armors_count += 1
                 used_obs_indices.add(i)
 
+        for j, tar in enumerate(self.targets):
+            if j not in matches or not matches[j]:
+                tar.on_missing()
+
         for i in range(len(obs_list)):
             if i not in used_obs_indices:
                 self._create_target(obs_list[i], t)
 
-        self._cleanup_targets(t)
+        self.targets = [t for t in self.targets if t.state != 'lost']
 
     def _create_target(self, obs, t):
         new_target = TrackedTarget(self.next_id, obs, t)
         self.targets.append(new_target)
         self.next_id += 1
 
-    def _cleanup_targets(self, t):
-        active_targets = []
-        for tar in self.targets:
-            if (t - tar.last_update) < self.max_lost_time:
-                active_targets.append(tar)
-        self.targets = active_targets
-
     def get_best_target(self):
-        if not self.targets:
+        def state_priority(state):
+            return {'tracking': 0, 'detecting': 1, 'temp_lost': 2, 'lost': 3}[state]
+
+        active_targets = [t for t in self.targets if t.is_active()]
+        if not active_targets:
             return None
-        sorted_targets = sorted(
-            self.targets,
-            key=lambda t: t.update_count,
-            reverse=True
-        )
-        return sorted_targets[0]
+        best = min(active_targets, key=lambda t: (state_priority(t.state), -t.update_count))
+        return best
+
+
+

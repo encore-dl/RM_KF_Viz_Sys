@@ -15,7 +15,7 @@ SPIN_THRESH = 3.0                # 装甲板选择器：自旋阈值
 LOCK_BIAS = 0.2                   # 装甲板选择器：锁定偏置
 
 V0 = 10.0                         # 弹道解算：初速度
-FIRE_THRESHOLD = 0.5             # 射击决策：开火阈值
+FIRE_THRESHOLD = 0.2             # 射击决策：开火阈值
 COOLDOWN = 0.1                    # 射击决策：冷却时间
 FIRE_DELAY = 0.1                  # 射击决策：发射延迟
 
@@ -201,3 +201,5 @@ class DemoTracker4:
     def _publish_draw_text(self, text, color=(255, 255, 255)):
         """发布绘图文本"""
         event_bus.publish('draw', DrawText(text, color))
+
+

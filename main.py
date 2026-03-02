@@ -39,6 +39,7 @@ def main():
 
         pg.display.flip()
 
+    tracker_manager.thread_shut_down()
     pg.quit()
 
 
