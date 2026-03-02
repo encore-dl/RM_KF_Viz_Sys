@@ -1,6 +1,7 @@
 import pygame as pg
 
-from simulation.managers.system_manager.keyboard_manager import KeyboardManager
+from simulation.managers.keyboard_manager import KeyboardManager
+from simulation.managers.tracker_manager import TrackerManager
 from simulation.simulator import Simulator
 
 from models.demo4.demo_tracker_4 import DemoTracker4
@@ -14,10 +15,11 @@ def main():
 
     simulator = Simulator()
     keyboard_manager = KeyboardManager(simulator)
+    tracker_manager = TrackerManager()
 
-    tracker = DemoTracker4(simulator.robot_manager, simulator.bullet_manager)
-    simulator.tracker_manager.set_tracker(tracker)
-    simulator.tracker_manager.run_tracker_thread()
+    tracker = DemoTracker4(simulator.robot_manager)
+    tracker_manager.set_tracker(tracker)
+    tracker_manager.run_tracker_thread()
 
     running = True
     while running:

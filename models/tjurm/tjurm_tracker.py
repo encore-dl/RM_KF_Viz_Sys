@@ -28,9 +28,9 @@ class TJURMTracker:
         self.pred_pos = []
         self.state_vecs = None
 
-    def track(self, obsrv_armors, dt, t_stamp):
+    def track(self, obsrv_armors, dt, timestamp):
         for obsrv_armor in obsrv_armors:
-            self.tracked_robots[self.robot_type_map[obsrv_armor.robot_type]].model.push(obsrv_armor, t_stamp)
+            self.tracked_robots[self.robot_type_map[obsrv_armor.robot_type]].model.push(obsrv_armor, timestamp)
 
         for tracked_robot in self.tracked_robots:
             tracked_robot.model.update()

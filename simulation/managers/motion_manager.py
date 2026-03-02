@@ -3,14 +3,14 @@ import numpy as np
 
 from core.entities.rigid.chassis import Chassis
 from core.entities.rigid.gimbal import Gimbal
-from core.entities.property.motion import Motion, MotionState, MotionConfig
+from core.entities.property.motion import MotionState, MotionConfig
 from core.algorithms.math import limit_rad
 
 
 class MotionManager:
     def __init__(self):
         # 分别存储不同实体的运动函数集
-        self.entity_motions = {}  # 仍使用字典，键为实体对象
+        self.entity_motions = {}
         self.chassis_list = []
         self.gimbal_list = []
 
@@ -120,6 +120,7 @@ class MotionManager:
             state.omg = state.omg / rotate_speed * state.max_rotate_speed
 
         state.rpy += state.omg * dt
+        state.rpy[2] = limit_rad(state.rpy[2])
         state.rpy[1] = np.clip(state.rpy[1], -np.pi / 2, np.pi / 2)
 
     def instant_stop(self, entity):

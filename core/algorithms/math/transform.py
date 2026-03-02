@@ -112,3 +112,11 @@ def world_to_camera_screen(world_pos, camera, camera_screen_center, resolution):
             return u, v
     else:
         return None
+
+
+def world_to_robot(world_pos, chassis):
+    return world_pos - chassis.world_pos
+
+
+def robot_to_world(rel_pos, chassis):
+    return rel_pos + chassis.world_pos

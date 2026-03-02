@@ -4,7 +4,7 @@ import time
 import traceback
 
 from simulation.event_bus import event_bus
-from simulation.dataflow import Observation, Prediction
+from simulation.dataflow import Observation, Tracking
 
 
 class TrackerManager:
@@ -72,18 +72,8 @@ class TrackerManager:
                     # input_dt = max(min(input_dt, 0.1), 0.001)
                 self._last_input_timestamp = input_data.timestamp
 
-                self._tracker.track(input_data.obs_armors, input_dt, input_data.timestamp)  # 调用track
-
-                # pred = Prediction(
-                #     center=self._tracker.pred_pos[0] if self._tracker.pred_pos else None,
-                #     armors=self._tracker.pred_pos[1:] if len(self._tracker.pred_pos) > 1 else [],
-                #     timestamp=time.time(),
-                #     is_tracking=self._tracker.is_tracking,
-                #     fps=self.fps,
-                #     state_vector=self._tracker.state_vecs
-                # )
-                # 新增bus数据传递方式，output队列暂留
-                # event_bus.publish('pred', pred)
+                event_bus.publish('track', Tracking(input_data.obs_armors, input_dt, input_data.timestamp))
+                self._tracker.track()  # 调用track
             except queue.Empty:
                 continue
             except Exception as e:

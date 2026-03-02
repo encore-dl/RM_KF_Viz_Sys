@@ -1,7 +1,7 @@
 import numpy as np
 from core.entities.rigid.chassis import Chassis
 from core.entities.rigid.gimbal import Gimbal
-from core.algorithms.math.transform import euler_to_rotation_matrix
+from core.algorithms.math.transform import euler_to_rotation_matrix, world_to_robot
 
 
 class Robot:
@@ -29,3 +29,13 @@ class Robot:
 
     def get_muzzle(self):
         return self.gimbal.muzzle
+
+    def get_camera_rel_pos(self):
+        return world_to_robot(self.get_camera().world_pos, self.chassis)
+
+    def get_muzzle_rel_pos(self):
+        return world_to_robot(self.get_muzzle().world_pos, self.chassis)
+
+    def get_gimbal_rel_pos(self):
+        return world_to_robot(self.gimbal.world_pos, self.chassis)
+

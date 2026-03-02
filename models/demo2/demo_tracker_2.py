@@ -22,7 +22,7 @@ class DemoTracker2:
         self.is_tracking = False
         self.lost_t = 0.
 
-    def track(self, obsrv_armors, dt, t_stamp):
+    def track(self, obsrv_armors, dt, timestamp):
         if self.is_tracking:
             self.model.predict(dt)
             self.lost_t += dt
@@ -36,23 +36,23 @@ class DemoTracker2:
                 self.model.init_model(
                     tar_armor.world_pos,
                     tar_armor.world_rpy[2],
-                    t_stamp
+                    timestamp
                 )
                 self.is_tracking = True
             else:
                 self.model.update(
                     tar_armor.world_pos,
                     tar_armor.world_rpy[2],
-                    t_stamp
+                    timestamp
                 )
 
-            self.last_t = t_stamp
+            self.last_t = timestamp
 
         else:
             if self.is_tracking:
                 if self.lost_t > self.max_lost_t:
                     self._reset_tracker()
-                    print(f"DemoTracker: Lost at {t_stamp:.3f}")
+                    print(f"DemoTracker: Lost at {timestamp:.3f}")
 
         if self.is_tracking:
             self.pred_pos = self.get_pred_pos(self.fly_t)

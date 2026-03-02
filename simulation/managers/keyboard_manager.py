@@ -24,8 +24,8 @@ class KeyboardManager:
         self.chassis_rot_keys = {
             pg.K_a: self.motion.rotate_chassis_anticlockwise,
             pg.K_d: self.motion.rotate_chassis_clockwise,
-            pg.K_z: self.motion.rotate_chassis_fast_anticlockwise,  # 小陀螺左
-            pg.K_c: self.motion.rotate_chassis_fast_clockwise,      # 小陀螺右
+            pg.K_z: self.motion.rotate_chassis_fast_anticlockwise,
+            pg.K_c: self.motion.rotate_chassis_fast_clockwise,
         }
 
         # 云台旋转键（相对）
@@ -40,8 +40,8 @@ class KeyboardManager:
         self.spec_key_func_map = {
             pg.K_ESCAPE: lambda: 'escape',
             pg.K_r: lambda: 'reset',
-            pg.K_SPACE: lambda: self.simulator.motion_manager.instant_stop(self.simulator.selected_entity),
-            pg.K_KP9: lambda: self.simulator.robot_manager.selected_robot.gimbal.switch_auto_aiming() if self.simulator.robot_manager.selected_robot else None,
+            pg.K_SPACE: lambda: self.simulator.motion_manager.instant_stop(self.simulator.robot_manager.controlled_robot.chassis),
+            pg.K_KP9: lambda: self.simulator.robot_manager.viewing_robot.gimbal.switch_auto_aiming() if self.simulator.robot_manager.viewing_robot else None,
         }
 
     def handle_event(self, event):
@@ -77,14 +77,17 @@ class KeyboardManager:
 
     def handle_single_key(self, key):
         if key == pg.K_1:
-            self.simulator.select_next_robot()
-            return 'select'
+            self.simulator.robot_manager.switch_control_robot()
+            return 'switch_control'
+        elif key == pg.K_9:
+            self.simulator.robot_manager.switch_view_robot()
+            return 'switch_view'
         elif key in self.spec_key_func_map and self.spec_key_func_map[key] is not None:
             return self.spec_key_func_map[key]()
         return None
 
     def handle_motion_key(self):
-        entity = self.simulator.selected_entity
+        entity = self.simulator.robot_manager.controlled_robot
         if not isinstance(entity, Robot):
             return
 

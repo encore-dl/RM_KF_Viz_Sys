@@ -26,11 +26,6 @@ class EventBus:
             except Exception as e:
                 print(f"Error in callback for topic '{topic}': {e}")
 
-    # def unsubscribe(self, topic: str):
-    #     # 取消指定主题的所有订阅（通常用于清理）
-    #     with self._lock:
-    #         self._subscribers[topic].clear()
-
 
 event_bus = EventBus()
 

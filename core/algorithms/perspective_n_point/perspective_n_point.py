@@ -229,65 +229,6 @@ def solve_pnp_core(camera_k, camera_dist, armor_type, image_points_2d,
     if not use_plus_pnp:
         return final_pos, final_rpy
 
-    # # 增强PnP：在标准PnP的基础上微调yaw
-    # # 方法：使用标准PnP的roll和pitch，只优化yaw
-    #
-    # # 1. 从标准PnP提取yaw作为基准
-    # base_yaw = final_rpy[2]  # 这是装甲板在世界坐标系中的yaw
-    #
-    # # 2. 构建一个简单的优化函数
-    # def compute_reprojection_error(yaw_adjust):
-    #     # 构建调整后的旋转矩阵
-    #     adjusted_rpy = np.array([final_rpy[0], final_rpy[1], yaw_adjust])
-    #     R_adjusted = euler_to_rotation_matrix(adjusted_rpy)
-    #
-    #     # 重建变换矩阵（位置保持不变）
-    #     T_world_adj = np.eye(4)
-    #     T_world_adj[:3, :3] = R_adjusted
-    #     T_world_adj[:3, 3] = final_pos
-    #
-    #     # 计算从世界到相机的变换
-    #     # T_camera = inv(T_p2h) @ inv(T_h2w) @ T_world_adj
-    #     # 但更简单：直接从装甲板到相机
-    #     T_camera = np.linalg.inv(T_p2h @ T_h2w) @ T_world_adj
-    #
-    #     # 将3D点变换到相机坐标系
-    #     points_camera = []
-    #     for p in obj_pts:
-    #         p_homo = np.append(p, 1.0)
-    #         p_cam = T_camera @ p_homo
-    #         points_camera.append(p_cam[:3])
-    #
-    #     # 投影到图像平面
-    #     total_error = 0
-    #     for p_cam, p_img in zip(points_camera, img_pts):
-    #         # 投影
-    #         p_proj_homo = camera_k @ p_cam
-    #         p_proj = p_proj_homo[:2] / p_proj_homo[2]
-    #
-    #         # 计算误差
-    #         total_error += np.linalg.norm(p_proj - p_img)
-    #
-    #     return total_error / len(obj_pts)
-    #
-    # # 3. 在基准yaw附近搜索最优yaw
-    # search_range = 0.3  # 弧度，约±17°
-    # best_yaw = base_yaw
-    # best_error = compute_reprojection_error(base_yaw)
-    #
-    # # 简单网格搜索
-    # for adjust in np.linspace(-search_range, search_range, 61):
-    #     test_yaw = base_yaw + adjust
-    #     error = compute_reprojection_error(test_yaw)
-    #     if error < best_error:
-    #         best_error = error
-    #         best_yaw = test_yaw
-    #
-    # # 4. 返回优化后的结果
-    # final_rpy_optimized = np.array([final_rpy[0], final_rpy[1], best_yaw])
-    # return final_pos, final_rpy_optimized
-
-    # 6. 增强PnP（YawPnP优化）- 修正版
     solver = YawPnP(camera_k)
 
     # 关键修正1：sys_yaw设置为装甲板在世界坐标系中的yaw

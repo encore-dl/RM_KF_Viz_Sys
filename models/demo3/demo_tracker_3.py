@@ -28,14 +28,14 @@ class DemoTJURMTracker:
         self.pred_pos = []
         self.state_vecs = None
 
-    def track(self, obs_armors, dt, t_stamp):
+    def track(self, obs_armors, dt, timestamp):
         if not obs_armors:
             self.is_tracking = False
             self.pred_pos = []
             return
 
         for obs_armor in obs_armors:
-            self.tracked_robots[self.robot_type_map[obs_armor.robot_type]].model.push(obs_armor, t_stamp)
+            self.tracked_robots[self.robot_type_map[obs_armor.robot_type]].model.push(obs_armor, timestamp)
 
         for tracked_robot in self.tracked_robots:
             tracked_robot.model.update()

@@ -63,8 +63,6 @@ class ExtendedKalmanFilter:
         self.nis_threshold = 9.488  # 卡方检验，自由度=4
         self.nees_threshold = 19.675  # 卡方检验，自由度=11 (状态维度)
 
-        self.err_count = 50
-
     def restart(self):
         self.x = np.zeros(self.state_dim)
         self.P = np.eye(self.state_dim)

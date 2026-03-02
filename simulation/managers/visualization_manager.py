@@ -4,10 +4,13 @@ import pygame as pg
 import math
 from dataclasses import dataclass
 from collections import deque
+import matplotlib.pyplot as plt
+import time
 
 from simulation.event_bus import event_bus
-from simulation.dataflow import Observation, PnPResult, Prediction, DrawText
-from core.algorithms.math import world_to_main_screen, world_to_camera_screen
+from config.config_manager import cfg_mgr
+from simulation.dataflow import Observation, Prediction, DrawText
+from core.algorithms.math import world_to_main_screen, world_to_camera_screen, robot_to_world
 
 
 @dataclass
@@ -24,17 +27,16 @@ class Color:
     ORANGE = (255, 165, 0)
 
 
-WORLD_SCALE = 200
-PI = math.pi
-
-
 class VisualizationManager:
-    def __init__(self, screen_width, screen_height, robot_manager):
-        self.screen_width = screen_width
-        self.screen_height = screen_height
+    def __init__(self, robot_manager, bullet_manager):
+        cfg = cfg_mgr.sim_cfg
+
+        self.screen_width = cfg.screen_width
+        self.screen_height = cfg.screen_height
         self.screen = pg.display.set_mode((self.screen_width, self.screen_height))
-        self.world_scale = WORLD_SCALE
+        self.world_scale = cfg.world_scale
         self.robot_manager = robot_manager
+        self.bullet_manager = bullet_manager
 
         self.main_screen_width = self.screen_width // 3 * 2
         self.main_screen_height = self.screen_height
@@ -48,23 +50,68 @@ class VisualizationManager:
         self.info_screen_center = np.array([self.screen_width // 6 * 5, self.screen_height // 3 * 2])
 
         self._latest_obs = None
-        self._latest_pnp_list = []
         self._latest_pred = None
         self._draw_texts = deque(maxlen=10)
         self._lock = threading.Lock()
 
+        # ---------- matplotlib 实时绘图初始化 ----------
+        self.plot_angles_lock = threading.Lock()
+        self.plot_maxlen = 300
+        self.plot_timestamps = deque(maxlen=self.plot_maxlen)
+
+        # 偏航角队列
+        self.obs_yaw_vals = deque(maxlen=self.plot_maxlen)
+        self.pred_yaw_vals = deque(maxlen=self.plot_maxlen)
+        self.mpc_yaw_vals = deque(maxlen=self.plot_maxlen)
+        self.actual_yaw_vals = deque(maxlen=self.plot_maxlen)
+
+        # 俯仰角队列
+        self.obs_pitch_vals = deque(maxlen=self.plot_maxlen)
+        self.pred_pitch_vals = deque(maxlen=self.plot_maxlen)
+        self.ballistic_pitch_vals = deque(maxlen=self.plot_maxlen)
+        self.actual_pitch_vals = deque(maxlen=self.plot_maxlen)
+
+        plt.ion()  # 交互模式
+        self.fig, (self.ax_yaw, self.ax_pitch) = plt.subplots(2, 1, figsize=(10, 8))
+
+        # 偏航角曲线
+        self.line_obs_yaw, = self.ax_yaw.plot([], [], 'c-', label='Obs Yaw')
+        self.line_pred_yaw, = self.ax_yaw.plot([], [], 'm-', label='Pred Yaw')
+        self.line_mpc_yaw, = self.ax_yaw.plot([], [], 'g-', label='MPC Yaw')
+        self.line_actual_yaw, = self.ax_yaw.plot([], [], 'b-', label='Actual Yaw')
+        self.ax_yaw.set_ylabel('Yaw (rad)')
+        self.ax_yaw.legend()
+        self.ax_yaw.grid(True)
+
+        # 俯仰角曲线
+        self.line_obs_pitch, = self.ax_pitch.plot([], [], 'c-', label='Obs Pitch')
+        self.line_pred_pitch, = self.ax_pitch.plot([], [], 'm-', label='Pred Pitch')
+        self.line_ballistic_pitch, = self.ax_pitch.plot([], [], 'g-', label='Ballistic Pitch')
+        self.line_actual_pitch, = self.ax_pitch.plot([], [], 'b-', label='Actual Pitch')
+        self.ax_pitch.set_xlabel('Time (s)')
+        self.ax_pitch.set_ylabel('Pitch (rad)')
+        self.ax_pitch.legend()
+        self.ax_pitch.grid(True)
+
+        self.fig.tight_layout()
+        self.plot_last_update = time.time()
+        self.plot_update_interval = 0.25  # 每0.1秒更新一次曲线
+
+        # 事件订阅
         event_bus.subscribe('obs', self._on_obs)
-        event_bus.subscribe('pnp', self._on_pnp)
         event_bus.subscribe('pred', self._on_pred)
         event_bus.subscribe('draw', self._on_draw)
+        # event_bus.subscribe('plot', self._on_plot)
+
+    def _robot_to_world(self, rel_pos):
+        chassis = self.robot_manager.viewing_robot.chassis if self.robot_manager.viewing_robot else None
+        if chassis is None:
+            return None
+        return robot_to_world(rel_pos, chassis)
 
     def _on_obs(self, data: Observation):
         with self._lock:
             self._latest_obs = data
-
-    def _on_pnp(self, data: PnPResult):
-        with self._lock:
-            self._latest_pnp_list = data
 
     def _on_pred(self, data: Prediction):
         with self._lock:
@@ -74,23 +121,38 @@ class VisualizationManager:
         with self._lock:
             self._draw_texts.append(data)
 
-    def show(self, bullets):
+    def _on_plot(self, data):
+        """接收绘图数据并存入队列"""
+        with self.plot_angles_lock:
+            self.plot_timestamps.append(data['timestamp'])
+            self.obs_yaw_vals.append(data.get('obs_yaw', np.nan))
+            self.obs_pitch_vals.append(data.get('obs_pitch', np.nan))
+            self.pred_yaw_vals.append(data.get('pred_yaw', np.nan))
+            self.pred_pitch_vals.append(data.get('pred_pitch', np.nan))
+            self.mpc_yaw_vals.append(data.get('mpc_yaw', np.nan))
+            self.actual_yaw_vals.append(data.get('actual_yaw', np.nan))
+            self.actual_pitch_vals.append(data.get('actual_pitch', np.nan))
+            self.ballistic_pitch_vals.append(data.get('ballistic_pitch', np.nan))
+
+    def show(self):
         self.screen.fill(Color.BLACK)
 
         with self._lock:
             obs = self._latest_obs
-            pnp_list = self._latest_pnp_list
             pred = self._latest_pred
 
         robots = self.robot_manager.robots
-        selected_robot = self.robot_manager.selected_robot
-        selected_camera = selected_robot.get_camera() if selected_robot else None
+        viewing = self.robot_manager.viewing_robot
+        selected_camera = viewing.get_camera() if viewing else None
+        bullets = self.bullet_manager.bullets
 
-        self.show_main_screen(robots, selected_camera, obs, pred, pnp_list, bullets)
-        self.show_camera_screen(robots, selected_camera, obs, pred, pnp_list, bullets)
-        self.show_info_screen(robots, obs, pred, pnp_list)
+        # 绘制三个屏幕（原有方法，需保留完整代码）
+        self.show_main_screen(robots, selected_camera, obs, pred, bullets)
+        self.show_camera_screen(robots, selected_camera, obs, pred, bullets)
+        self.show_info_screen(robots, obs, pred)
+        self.show_plt_screen()
 
-    def show_main_screen(self, robots, selected_camera, obs, pred, pnp_list, bullets):
+    def show_main_screen(self, robots, selected_camera, obs, pred, bullets):
         main_screen_rect = pg.Rect(
             self.main_screen_center[0] - self.main_screen_width // 2,
             self.main_screen_center[1] - self.main_screen_height // 2,
@@ -118,22 +180,14 @@ class VisualizationManager:
         # 观测数据
         if obs:
             for obs_armor in obs.obs_armors:
-                self._draw_point_main(obs_armor.world_pos, Color.YELLOW, 5)
+                self._draw_point_main(self._robot_to_world(obs_armor.rel_pos), Color.YELLOW, 5)
 
         # 预测数据
         if pred and pred.is_tracking:
             if pred.center is not None:
-                self._draw_point_main(pred.center, Color.RED, 6)
+                self._draw_point_main(self._robot_to_world(pred.center), Color.RED, 6)
             for pred_armor_pos in pred.armors:
-                self._draw_point_main(pred_armor_pos, Color.PURPLE, 4)
-
-        # PnP结果
-        for pnp in pnp_list:
-            if pnp and pnp.pnp_pos is not None and not np.isnan(pnp.pnp_pos).any():
-                center = self._draw_point_main(pnp.pnp_pos, Color.ORANGE, 0)
-                if center is not None:
-                    pg.draw.line(self.screen, Color.ORANGE, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
-                    pg.draw.line(self.screen, Color.ORANGE, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
+                self._draw_point_main(self._robot_to_world(pred_armor_pos), Color.PURPLE, 4)
 
         # 子弹
         if bullets:
@@ -231,7 +285,7 @@ class VisualizationManager:
             self.screen.blit(temp_surf, main_screen_rect)
             pg.draw.polygon(self.screen, color, screen_points, 2)
 
-    def show_camera_screen(self, robots, selected_camera, obs, pred, pnp_list, bullets):
+    def show_camera_screen(self, robots, selected_camera, obs, pred, bullets):
         camera_screen_rect = pg.Rect(
             self.camera_screen_center[0] - self.camera_screen_width // 2,
             self.camera_screen_center[1] - self.camera_screen_height // 2,
@@ -254,20 +308,13 @@ class VisualizationManager:
 
         if obs:
             for obs_armor in obs.obs_armors:
-                self._draw_point_camera(obs_armor.world_pos, selected_camera, Color.YELLOW, 5)
+                self._draw_point_camera(self._robot_to_world(obs_armor.rel_pos), selected_camera, Color.YELLOW, 5)
 
         if pred and pred.is_tracking:
             if pred.center is not None:
-                self._draw_point_camera(pred.center, selected_camera, Color.RED, 6)
+                self._draw_point_camera(self._robot_to_world(pred.center), selected_camera, Color.RED, 6)
             for pred_armor_pos in pred.armors:
-                self._draw_point_camera(pred_armor_pos, selected_camera, Color.PURPLE, 4)
-
-        for pnp in pnp_list:
-            if pnp and pnp.pnp_pos is not None and not np.isnan(pnp.pnp_pos).any():
-                center = self._draw_point_camera(pnp.pnp_pos, selected_camera, Color.ORANGE, 0)
-                if center is not None:
-                    pg.draw.line(self.screen, Color.ORANGE, (center[0] - 5, center[1] - 5), (center[0] + 5, center[1] + 5), 2)
-                    pg.draw.line(self.screen, Color.ORANGE, (center[0] + 5, center[1] - 5), (center[0] - 5, center[1] + 5), 2)
+                self._draw_point_camera(self._robot_to_world(pred_armor_pos), selected_camera, Color.PURPLE, 4)
 
         if bullets:
             for bullet in bullets:
@@ -316,7 +363,7 @@ class VisualizationManager:
             self.screen.blit(temp_surf, camera_screen_rect)
             pg.draw.polygon(self.screen, color, screen_points, 2)
 
-    def show_info_screen(self, robots, obs, pred, pnp_list):
+    def show_info_screen(self, robots, obs, pred):
         info_screen_rect = pg.Rect(
             self.info_screen_center[0] - self.info_screen_width // 2,
             self.info_screen_center[1] - self.info_screen_height // 2,
@@ -422,3 +469,33 @@ class VisualizationManager:
                     surface = font.render(text, True, color)
                     self.screen.blit(surface, (x, curr_y))
                     curr_y += line_height
+
+    def show_plt_screen(self):
+        # ---------- 更新 matplotlib 实时曲线 ----------
+        current_t = time.time()
+        if current_t - self.plot_last_update > self.plot_update_interval:
+            self.plot_last_update = current_t
+            with self.plot_angles_lock:
+                if len(self.plot_timestamps) > 1:
+                    t0 = self.plot_timestamps[0]
+                    t_rel = [ts - t0 for ts in self.plot_timestamps]
+
+                    # 更新偏航角曲线
+                    self.line_obs_yaw.set_data(t_rel, list(self.obs_yaw_vals))
+                    self.line_pred_yaw.set_data(t_rel, list(self.pred_yaw_vals))
+                    self.line_mpc_yaw.set_data(t_rel, list(self.mpc_yaw_vals))
+                    self.line_actual_yaw.set_data(t_rel, list(self.actual_yaw_vals))
+                    self.ax_yaw.relim()
+                    self.ax_yaw.autoscale_view()
+
+                    # 更新俯仰角曲线
+                    self.line_obs_pitch.set_data(t_rel, list(self.obs_pitch_vals))
+                    self.line_pred_pitch.set_data(t_rel, list(self.pred_pitch_vals))
+                    self.line_ballistic_pitch.set_data(t_rel, list(self.ballistic_pitch_vals))
+                    self.line_actual_pitch.set_data(t_rel, list(self.actual_pitch_vals))
+                    self.ax_pitch.relim()
+                    self.ax_pitch.autoscale_view()
+
+                    # 刷新画布
+                    self.fig.canvas.draw_idle()
+                    self.fig.canvas.flush_events()

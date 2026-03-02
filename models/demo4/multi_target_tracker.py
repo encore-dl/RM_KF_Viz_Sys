@@ -1,3 +1,5 @@
+import numpy as np
+
 from models.demo4.demo_model_4 import DemoModel4
 
 
@@ -5,29 +7,48 @@ class TrackedTarget:
     def __init__(self, target_id, init_obs, t):
         self.id = target_id
         self.ekf = DemoModel4()
-        self.ekf.init_model(init_obs.world_pos, init_obs.world_rpy[2], t)
+        self.ekf.init_model(init_obs.rel_pos, init_obs.rel_rpy[2], t)
         self.last_update = t
         self.update_count = 1
         self.robot_type = init_obs.robot_type
         self.matched_armors_count = 0
+        self.last_match_id = 0
+        self.jumped = False
 
     def predict(self, dt):
         if dt > 0:
             self.ekf.predict(dt)
 
     def update(self, obs, t):
-        self.ekf.update(obs.world_pos, obs.world_rpy[2], t)
+        self.ekf.update(obs.rel_pos, obs.rel_rpy[2], t)
+        if self.ekf.match_id != self.last_match_id:
+            self.jumped = True
+        else:
+            self.jumped = False
+        self.last_match_id = self.ekf.match_id
         self.last_update = t
         self.update_count += 1
 
+    def get_pred_pos(self, dt, self_rel_pos, armor_selector):
+        if not self.ekf.is_init:
+            return np.zeros(3), np.zeros(3)
+        x = self.ekf.ekf.x
+        pred_cx = x[0] + x[3] * dt
+        pred_cy = x[1] + x[4] * dt
+        pred_cz = x[2] + x[5] * dt
+        center = np.array([pred_cx, pred_cy, pred_cz])
+
+        # 使用装甲板选择器获取未来时刻的最佳装甲板
+        armor_id, armor_pos = armor_selector.select_armor(self, self_rel_pos, dt)
+        return center, armor_pos
+
 
 class MultiTargetTracker:
-    def __init__(self, max_lost_time=0.5, match_threshold=0.4, robot_manager=None):
+    def __init__(self, max_lost_time=0.5, match_threshold=0.4):
         self.targets = []
         self.next_id = 0
         self.max_lost_time = max_lost_time
         self.match_threshold = match_threshold
-        self.robot_manager = robot_manager  # 可能用于获取自车信息，这里暂时不用
 
     def push_observation(self, obs_list, t):
         for target in self.targets:
@@ -42,7 +63,7 @@ class MultiTargetTracker:
             for j, target in enumerate(self.targets):
                 if target.robot_type != obs.robot_type:
                     continue
-                dist = target.ekf.get_geometric_distance(obs.world_pos)
+                dist = target.ekf.get_geometric_distance(obs.rel_pos)
                 if dist < min_dist:
                     min_dist = dist
                     best_target_idx = j
@@ -71,9 +92,9 @@ class MultiTargetTracker:
 
     def _cleanup_targets(self, t):
         active_targets = []
-        for tgt in self.targets:
-            if (t - tgt.last_update) < self.max_lost_time:
-                active_targets.append(tgt)
+        for tar in self.targets:
+            if (t - tar.last_update) < self.max_lost_time:
+                active_targets.append(tar)
         self.targets = active_targets
 
     def get_best_target(self):

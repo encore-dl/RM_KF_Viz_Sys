@@ -21,7 +21,7 @@ class IMMTracker1:
         self.is_tracking = False
         self.lost_t = 0.
 
-    def track(self, obs_armors, dt, t_stamp):
+    def track(self, obs_armors, dt, timestamp):
         if not obs_armors:
             self.is_tracking = False
             self.pred_pos = []
@@ -44,7 +44,7 @@ class IMMTracker1:
                 self.model.init_model(
                     tar_armor.world_pos,
                     tar_armor.world_rpy[2],
-                    t_stamp
+                    timestamp
                 )
                 self.is_tracking = True
             else:
@@ -52,17 +52,17 @@ class IMMTracker1:
                 self.model.update(
                     tar_armor.world_pos,
                     tar_armor.world_rpy[2],
-                    t_stamp
+                    timestamp
                 )
 
-            self.last_t = t_stamp
+            self.last_t = timestamp
 
         else:
             # 丢失处理
             if self.is_tracking:
                 if self.lost_t > self.max_lost_t:
                     self._reset_tracker()
-                    print(f"DemoTracker: Lost at {t_stamp:.3f}")
+                    print(f"DemoTracker: Lost at {timestamp:.3f}")
 
         # 4. 获取结果与状态拆分
         if self.is_tracking:

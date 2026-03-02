@@ -3,6 +3,7 @@ from core.entities.rigid.rigid import Rigid
 from core.entities.rigid.camera import Camera
 from core.entities.rigid.muzzle import Muzzle
 from core.algorithms.math import euler_to_rotation_matrix, limit_rad
+from core.algorithms.control.pid import PIDParams, CascadedPID
 
 
 class Gimbal(Rigid):
@@ -18,10 +19,10 @@ class Gimbal(Rigid):
 
         self.auto_aiming = False
         self.target_theta = 0.0      # 期望偏航角（世界）
-        self.target_omega = 0.0       # 期望偏航角速度
+        self.target_omega = 0.0       # 期望偏航角速度（前馈）
         self.target_alpha = 0.0       # 期望偏航角加速度（前馈）
         self.target_pitch = 0.0       # 期望俯仰角
-        self.target_pitch_omega = 0.0 # 期望俯仰角速度
+        self.target_pitch_omega = 0.0 # 期望俯仰角速度（前馈）
         self.target_pitch_alpha = 0.0 # 期望俯仰角加速度（前馈）
 
         # 动力学参数（可调）
@@ -32,11 +33,20 @@ class Gimbal(Rigid):
         self.motor_torque_max_yaw = 1.0  # 偏航最大扭矩 (Nm)
         self.motor_torque_max_pitch = 1.0  # 俯仰最大扭矩
 
-        # 控制增益（可调）
-        self.kp_yaw = 50.0
-        self.kd_yaw = 10.0
-        self.kp_pitch = 50.0
-        self.kd_pitch = 10.0
+        self.yaw_pid = CascadedPID(
+            outer_params=PIDParams(kp=7, ki=0.0, kd=0.,
+                                   max_output=50.0, max_integral=0.0),
+            inner_params=PIDParams(kp=25.0, ki=0.0, kd=0.0,
+                                   max_output=80.0, max_integral=0.0)
+        )
+
+        # 俯仰轴（与偏航相同，但可根据实际情况微调）
+        self.pitch_pid = CascadedPID(
+            outer_params=PIDParams(kp=20, ki=0.0, kd=0.1,
+                                   max_output=20.0, max_integral=0.0),
+            inner_params=PIDParams(kp=40.0, ki=1.0, kd=0.0,
+                                   max_output=80.0, max_integral=0.0)
+        )
 
         self.update_children()
 
@@ -77,33 +87,44 @@ class Gimbal(Rigid):
         self.muzzle.world_omg = self.world_omg.copy()
 
     def apply_control(self, dt):
-        """
-        根据期望状态计算控制加速度，更新内部状态
-        采用 PD + 前馈控制
-        """
         if not self.auto_aiming:
             return
 
-        # 偏航轴控制
+        # ----- 偏航轴控制（带角度Wrap）-----
+        # 计算误差并调整期望角度，使误差最小
         error_theta = limit_rad(self.target_theta - self.world_rpy[2])
-        error_omega = self.target_omega - self.world_omg[2]
-        alpha_cmd = self.kp_yaw * error_theta + self.kd_yaw * error_omega + self.target_alpha
-        alpha_cmd = np.clip(alpha_cmd, -50.0, 50.0)  # 限制最大加速度
+        setpoint_theta_adj = self.world_rpy[2] + error_theta  # 调整后的期望角度（与当前角度最近）
 
+        alpha_cmd = self.yaw_pid.update(
+            setpoint=setpoint_theta_adj,
+            measurement_outer=self.world_rpy[2],
+            measurement_inner=self.world_omg[2],
+            feedforward_outer=self.target_omega,
+            feedforward_inner=self.target_alpha,
+            dt=dt
+        )
+        alpha_cmd = np.clip(alpha_cmd, -50.0, 50.0)
         self.world_alp[2] = alpha_cmd
         self.world_omg[2] += self.world_alp[2] * dt
         self.world_rpy[2] += self.world_omg[2] * dt
 
-        # 俯仰轴控制
-        error_pitch = self.target_pitch - self.world_rpy[1]
-        error_pitch_omega = self.target_pitch_omega - self.world_omg[1]
-        pitch_alpha_cmd = self.kp_pitch * error_pitch + self.kd_pitch * error_pitch_omega + self.target_pitch_alpha
+        # ----- 俯仰轴控制（俯仰范围有限，通常不需Wrap，但也可做简单处理）-----
+        # 俯仰角限制在[-π/2, π/2]，一般不跨越边界，直接使用目标值即可
+        pitch_alpha_cmd = self.pitch_pid.update(
+            setpoint=self.target_pitch,
+            measurement_outer=self.world_rpy[1],
+            measurement_inner=self.world_omg[1],
+            feedforward_outer=self.target_pitch_omega,
+            feedforward_inner=self.target_pitch_alpha,
+            dt=dt
+        )
         pitch_alpha_cmd = np.clip(pitch_alpha_cmd, -50.0, 50.0)
-
         self.world_alp[1] = pitch_alpha_cmd
         self.world_omg[1] += self.world_alp[1] * dt
         self.world_rpy[1] += self.world_omg[1] * dt
-        self.world_rpy[1] = np.clip(self.world_rpy[1], -np.pi/2, np.pi/2)
+        self.world_rpy[1] = np.clip(self.world_rpy[1], -np.pi / 2, np.pi / 2)
 
     def switch_auto_aiming(self):
         self.auto_aiming = not self.auto_aiming
+
+
