@@ -4,14 +4,12 @@ from models.demo4.demo_model_4 import DemoModel4
 
 
 class TrackedTarget:
-    def __init__(self, target_id, init_obs, t):
-        self.id = target_id
+    def __init__(self, init_obs, t):
         self.ekf = DemoModel4()
-        self.ekf.init_model(init_obs.rel_pos, init_obs.rel_rpy[2], t)
+        self.ekf.init_model(init_obs)
         self.last_update = t
         self.update_count = 1
         self.robot_type = init_obs.robot_type
-        self.matched_armors_count = 0
         self.last_match_id = 0
         self.jumped = False
 
@@ -20,6 +18,10 @@ class TrackedTarget:
         self.lost_count = 0
         self.min_detect_count = 3
         self.max_lost_count = 10
+
+        self.mahal_thresh_ = 9.49  # 马氏距离平方阈值（4维卡方95%分位）
+        self.confirm_thresh_ = 3  # 新ID需要连续匹配成功多少帧才允许切换
+        self.max_lost_ = 2  # 连续丢失多少帧后重置计数
 
     def predict(self, dt):
         if dt > 0:
@@ -31,7 +33,7 @@ class TrackedTarget:
             self._reset()
             return
 
-        self.ekf.update(obs.rel_pos, obs.rel_rpy[2], t)
+        self.ekf.update(obs)
         if self.ekf.match_id != self.last_match_id:
             self.jumped = True
         else:
@@ -48,6 +50,7 @@ class TrackedTarget:
             self.detect_count += 1
             if self.detect_count >= self.min_detect_count:
                 self.state = 'tracking'
+                self.lost_count = 0
         elif self.state == 'tracking':
             self.lost_count = 0
         elif self.state == 'temp_lost':
@@ -75,6 +78,7 @@ class TrackedTarget:
         self.state = 'lost'
         self.detect_count = 0
         self.lost_count = 0
+        self.last_match_id = 0
         self.ekf.is_init = False   # 强制重新初始化
 
     def get_pred_pos(self, dt, self_rel_pos, armor_selector):
@@ -94,7 +98,6 @@ class TrackedTarget:
 class MultiTargetTracker:
     def __init__(self, max_lost_time=0.5, match_threshold=0.4):
         self.targets = []
-        self.next_id = 0
         self.max_lost_time = max_lost_time
         self.match_threshold = match_threshold
 
@@ -102,7 +105,6 @@ class MultiTargetTracker:
         for target in self.targets:
             dt = t - target.last_update
             target.predict(dt)
-            target.matched_armors_count = 0
 
         matches = {j: [] for j in range(len(self.targets))}
         for i, obs in enumerate(obs_list):
@@ -124,7 +126,6 @@ class MultiTargetTracker:
             for i in obs_indices:
                 obs = obs_list[i]
                 target.update(obs, t)
-                target.matched_armors_count += 1
                 used_obs_indices.add(i)
 
         for j, tar in enumerate(self.targets):
@@ -138,9 +139,8 @@ class MultiTargetTracker:
         self.targets = [t for t in self.targets if t.state != 'lost']
 
     def _create_target(self, obs, t):
-        new_target = TrackedTarget(self.next_id, obs, t)
+        new_target = TrackedTarget(obs, t)
         self.targets.append(new_target)
-        self.next_id += 1
 
     def get_best_target(self):
         def state_priority(state):

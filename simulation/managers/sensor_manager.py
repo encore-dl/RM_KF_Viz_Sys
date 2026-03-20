@@ -73,7 +73,7 @@ class SensorManager:
                 calc_pos, calc_rpy = solve_pnp_core(
                     camera_k=K,
                     camera_dist=D,
-                    armor_type=armor.armor_size,
+                    armor_size=armor.armor_size,
                     image_points_2d=ordered_pixels,
                     head_yaw=head_yaw,
                     trans_head2world=T_head2world,

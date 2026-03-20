@@ -38,3 +38,7 @@ Robot:
     armor_size: small
     light_bar_interval: 0.135
     light_bar_length: 0.055
+
+Rune:
+  leaf_count: 5
+  radius: 0.7

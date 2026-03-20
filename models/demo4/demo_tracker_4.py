@@ -20,7 +20,7 @@ COOLDOWN = 0.1                    # 射击决策：冷却时间
 FIRE_DELAY = 0.1                  # 射击决策：发射延迟
 
 DT = 0.01                         # 参考生成与MPC控制器：时间步长
-N = 30                            # 参考生成与MPC控制器：预测步数
+N = 10                            # 参考生成与MPC控制器：预测步数
 YAW_OFFSET = 0.0                  # 参考生成：偏航偏移量
 Q_THETA = 100.0                   # MPC：角度权重
 Q_DTHETA = 10.0                   # MPC：角速度权重
@@ -33,7 +33,7 @@ THETA_MAX = 1e5                   # MPC：角度上限（无硬约束）
 class DemoTracker4:
     def __init__(self, robot_manager):
         self.robot_manager = robot_manager
-        self.total_delay = 0.
+        self.total_delay = 1
         self.multi_tracker = MultiTargetTracker()
 
         # 创建共享的装甲板选择器
@@ -76,6 +76,8 @@ class DemoTracker4:
     def track(self):
         self.multi_tracker.push_observation(self.obs_armors, self.timestamp)
         best_target = self.multi_tracker.get_best_target()
+        if best_target:
+            self._publish_draw_text(f'jumped: {best_target.jumped}')
 
         # 获取自车枪口位置和云台位置
         robot = self.robot_manager.viewing_robot
@@ -125,14 +127,11 @@ class DemoTracker4:
         pred_yaw, pred_pitch = self._calc_pred_angle(best_target, gimbal_rel_pos, gun_rel_pos)
 
         # 设置云台目标
-        gimbal.set_target(theta_des, omega_des, alpha_yaw, pitch_des, 0., 0.)
+        gimbal.set_target(pred_yaw, omega_des, alpha_yaw, pitch_des, 0., 0.)
 
         # 发布绘图数据
         self._publish_plot_data(self.timestamp, obs_yaw, obs_pitch, pred_yaw, pred_pitch,
                                 limit_rad(theta_des), limit_rad(gimbal.world_rpy[2]), gimbal.world_rpy[1], pitch_des)
-
-        self._publish_draw_text(f'alpha_yaw: {alpha_yaw:.2f}')
-
     def _calc_obs_angle(self):
         """计算第一个观测装甲板相对于云台的yaw和pitch"""
         if not self.obs_armors:

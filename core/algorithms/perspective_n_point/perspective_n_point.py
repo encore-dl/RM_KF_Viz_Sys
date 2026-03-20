@@ -152,7 +152,7 @@ class YawPnP:
 
 
 # ==================== 主求解函数 ====================
-def solve_pnp_core(camera_k, camera_dist, armor_type, image_points_2d,
+def solve_pnp_core(camera_k, camera_dist, armor_size, image_points_2d,
                    head_yaw, trans_head2world, rot_head2world,
                    trans_pnp2head, rot_pnp2head, use_plus_pnp=True):
     """
@@ -161,7 +161,7 @@ def solve_pnp_core(camera_k, camera_dist, armor_type, image_points_2d,
     参数:
         camera_k: 相机内参矩阵
         camera_dist: 相机畸变系数
-        armor_type: 装甲板类型 ('large' 或 'small')
+        armor_size: 装甲板类型 ('large' 或 'small')
         image_points_2d: 图像上的4个角点坐标
         head_yaw: 云台当前偏航角
         trans_head2world: 云台到世界坐标系的平移
@@ -177,7 +177,7 @@ def solve_pnp_core(camera_k, camera_dist, armor_type, image_points_2d,
 
     # 1. 初始化配置和装甲板模型点
     cfg = PnPConfig()
-    w, h = (cfg.width_large, cfg.height_large) if armor_type == 'large' else (cfg.width_small, cfg.height_small)
+    w, h = (cfg.width_large, cfg.height_large) if armor_size == 'large' else (cfg.width_small, cfg.height_small)
 
     # 3D模型点（装甲板中心为原点，FLU坐标系）
     obj_pts = np.array([

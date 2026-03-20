@@ -18,6 +18,12 @@ class RobotTypeConfig:
 
 
 @dataclass
+class RuneConfig:
+    leaf_count: int
+    radius: float
+
+
+@dataclass
 class SimulatorConfig:
     screen_width: int
     screen_height: int
@@ -32,6 +38,7 @@ class SimulatorConfig:
 class ConfigManager:
     def __init__(self, config_dir='config'):
         self.robots_cfg = {}
+        self.rune_cfg = {}
         self.sim_cfg = None
 
         robot_path = os.path.join(config_dir, 'robots.yaml')
@@ -39,6 +46,7 @@ class ConfigManager:
             robot_data = yaml.safe_load(f)
         for name, params in robot_data['Robot'].items():
             self.robots_cfg[name] = RobotTypeConfig(**params)
+        self.rune_cfg = RuneConfig(**robot_data['Rune'])
 
         sim_path = os.path.join(config_dir, 'simulator.yaml')
         with open(sim_path, 'r') as f:
@@ -51,6 +59,9 @@ class ConfigManager:
 
     def get_simulator_config(self):
         return self.sim_cfg
+
+    def get_rune_config(self):
+        return self.rune_cfg
 
 
 cfg_mgr = ConfigManager()

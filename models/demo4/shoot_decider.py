@@ -88,9 +88,6 @@ class ShootDecider:
         yaw_diff = abs(limit_rad(desired_yaw - current_yaw))
         pitch_diff = abs(desired_pitch - current_pitch)
 
-        event_bus.publish('draw', DrawText(f'yaw_diff: {yaw_diff:.3f}', (255,255,255)))
-        event_bus.publish('draw', DrawText(f'pitch_diff: {pitch_diff:.3f}', (255,255,255)))
-
         aim_ok = yaw_diff < self.fire_threshold and pitch_diff < self.fire_threshold
         cooldown_ok = current_time - self.last_fire_time >= self.cooldown
         if aim_ok and cooldown_ok:
