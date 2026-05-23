@@ -3,6 +3,8 @@ import numpy as np
 
 from core.entities.rigid.chassis import Chassis
 from core.entities.rigid.gimbal import Gimbal
+from core.entities.rigid.outpost import Outpost
+from core.entities.rigid.rune import Rune
 from core.entities.property.motion import MotionState, MotionConfig
 from core.algorithms.math import limit_rad
 
@@ -13,6 +15,7 @@ class MotionManager:
         self.entity_motions = {}
         self.chassis_list = []
         self.gimbal_list = []
+        self.device_list = []
 
     def add_entity(self, entity):
         """将实体添加到管理器中，并分类"""
@@ -21,6 +24,8 @@ class MotionManager:
             self.chassis_list.append(entity)
         elif isinstance(entity, Gimbal):
             self.gimbal_list.append(entity)
+        else:
+            self.device_list.append(entity)
 
     def remove_entity(self, entity):
         if entity in self.entity_motions:
@@ -29,18 +34,20 @@ class MotionManager:
             self.chassis_list.remove(entity)
         if entity in self.gimbal_list:
             self.gimbal_list.remove(entity)
+        if entity in self.device_list:
+            self.device_list.remove(entity)
 
     def set_motion_func_set(self, entity, motion_func_set: set[Callable]):
         if entity in self.entity_motions:
             self.entity_motions[entity] = motion_func_set
 
     def update(self, dt, t):
-        # 1. 更新底盘
+        # 更新底盘
         for chassis in self.chassis_list:
             self._update_entity(chassis, dt, t)
             chassis.update_armors()
 
-        # 2. 更新云台
+        # 更新云台
         for gimbal in self.gimbal_list:
             if gimbal.auto_aiming:
                 # 自动瞄准模式下，用闭环控制
@@ -55,6 +62,13 @@ class MotionManager:
                     gimbal.update_from_chassis(gimbal.owner_chassis)
 
             gimbal.update_children()
+
+        # 更新设施
+        for device in self.device_list:
+            if isinstance(device, Outpost):
+                device.update_outpost(dt)
+            elif isinstance(device, Rune):
+                device.update_rune(dt)
 
     def _update_entity(self, entity, dt, t):
         """通用物理更新，使用 MotionState"""

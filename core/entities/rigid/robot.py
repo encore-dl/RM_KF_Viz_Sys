@@ -7,7 +7,7 @@ from core.algorithms.math.transform import euler_to_rotation_matrix, world_to_ro
 class Robot:
     """完整的机器人，包含底盘和云台"""
     def __init__(self, robot_type, chassis_pos=None, chassis_rpy=None,
-                 gimbal_mount_pos=np.array([0, 0, 0.3]), gimbal_mount_rpy=np.zeros(3)):
+                 gimbal_mount_pos=np.array([0., 0., 0.]), gimbal_mount_rpy=np.zeros(3)):
         self.robot_type = robot_type
         # 底盘
         self.chassis = Chassis(robot_type, world_pos=chassis_pos, world_rpy=chassis_rpy)

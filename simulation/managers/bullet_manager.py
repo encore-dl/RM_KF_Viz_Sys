@@ -11,10 +11,14 @@ class BulletManager:
         self.pending_fires = []
         self.fire_delay = 0.1
         self.v0 = 10.
+        self.auto_fire = False
+
         event_bus.subscribe('fire', self._on_fire)
 
     def _on_fire(self, data):
         if not data.get('is_fire'):
+            return
+        if not self.auto_fire:
             return
 
         robot = self.robot_manager.viewing_robot
@@ -33,6 +37,9 @@ class BulletManager:
         bullet = Bullet(muzzle_pos, velocity)
         self.bullets.append(bullet)
         return bullet
+
+    def switch_auto_fire(self):
+        self.auto_fire = not self.auto_fire
 
     def update(self, dt):
         """更新所有子弹，进行碰撞检测"""

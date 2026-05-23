@@ -11,10 +11,10 @@ class RobotManager:
         self.motion_manager = motion_manager  # 引用 MotionManager
 
     def create_robot(self, robot_type, chassis_pos=None, chassis_rpy=None,
-                     gimbal_mount_pos=None, gimbal_mount_rpy=None):
+                     gimbal_mount_pos=np.array([0., 0., 0.]), gimbal_mount_rpy=np.array([0., 0., 0.])):
         robot = Robot(robot_type, chassis_pos, chassis_rpy,
-                      gimbal_mount_pos or np.array([0, 0, 0.3]),
-                      gimbal_mount_rpy or np.zeros(3))
+                      gimbal_mount_pos,
+                      gimbal_mount_rpy)
         self.robots.append(robot)
         # 将底盘和云台添加到运动管理器
         self.motion_manager.add_entity(robot.chassis)

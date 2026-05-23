@@ -10,11 +10,13 @@ class Gimbal(Rigid):
     """云台类，包含相机和枪口，安装在底盘上，具有相对旋转"""
     def __init__(self, mount_pos=np.zeros(3), mount_rpy=np.zeros(3), **kwargs):
         super().__init__(**kwargs)
-        self.mount_pos = mount_pos.copy()
-        self.mount_rpy = mount_rpy.copy()
+        self.mount_pos = mount_pos
+        self.mount_rpy = mount_rpy
         self.owner_chassis = None
 
-        self.camera = Camera()
+        self.camera = Camera(
+            mount_pos=np.array([0.05, 0., 0.])
+        )
         self.muzzle = Muzzle()
 
         self.auto_aiming = False

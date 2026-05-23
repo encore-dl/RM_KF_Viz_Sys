@@ -1,3 +1,4 @@
+import numpy as np
 import pygame as pg
 from core.entities.property.robot_type import RobotType
 from core.entities.rigid.robot import Robot
@@ -42,6 +43,7 @@ class KeyboardManager:
             pg.K_r: lambda: 'reset',
             pg.K_SPACE: lambda: self.simulator.motion_manager.instant_stop(self.simulator.robot_manager.controlled_robot.chassis),
             pg.K_KP9: lambda: self.simulator.robot_manager.viewing_robot.gimbal.switch_auto_aiming() if self.simulator.robot_manager.viewing_robot else None,
+            pg.K_KP8: lambda: self.simulator.bullet_manager.switch_auto_fire()
         }
 
     def handle_event(self, event):
@@ -65,14 +67,30 @@ class KeyboardManager:
                 robot_id = key - pg.K_0
                 self.simulator.robot_manager.delete_robot(robot_id)
                 return 'combo'
+            elif key == pg.K_KP1:
+                self.simulator.device_manager.delete_device('Outpost')
+                return 'combo'
+            elif key == pg.K_KP2:
+                self.simulator.device_manager.delete_device('Rune')
+                return 'combo'
 
         if pg.K_RETURN in self.pressed_keys:
             if key == pg.K_1:
-                self.simulator.robot_manager.create_robot(RobotType.Hero)
+                self.simulator.robot_manager.create_robot(
+                    robot_type=RobotType.Hero,
+                    gimbal_mount_pos=np.array([0., 0., 0.2])
+                )
                 return 'combo'
             elif key == pg.K_2:
                 self.simulator.robot_manager.create_robot(RobotType.Sentry)
                 return 'combo'
+            elif key == pg.K_KP1:
+                self.simulator.device_manager.create_device('Outpost')
+                return 'combo'
+            elif key == pg.K_KP2:
+                self.simulator.device_manager.create_device('Rune')
+                return 'combo'
+
         return None
 
     def handle_single_key(self, key):
@@ -88,7 +106,7 @@ class KeyboardManager:
 
     def handle_motion_key(self):
         entity = self.simulator.robot_manager.controlled_robot
-        if not isinstance(entity, Robot):
+        if not isinstance(entity, Robot):  # 非机器人筛除掉，不会动符、前哨、基地
             return
 
         chassis = entity.chassis

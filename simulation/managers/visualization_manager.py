@@ -28,7 +28,7 @@ class Color:
 
 
 class VisualizationManager:
-    def __init__(self, robot_manager, bullet_manager):
+    def __init__(self, robot_manager, device_manager, bullet_manager):
         cfg = cfg_mgr.sim_cfg
 
         self.screen_width = cfg.screen_width
@@ -36,6 +36,7 @@ class VisualizationManager:
         self.screen = pg.display.set_mode((self.screen_width, self.screen_height))
         self.world_scale = cfg.world_scale
         self.robot_manager = robot_manager
+        self.device_manager = device_manager
         self.bullet_manager = bullet_manager
 
         self.main_screen_width = self.screen_width // 3 * 2
@@ -101,7 +102,7 @@ class VisualizationManager:
         event_bus.subscribe('obs', self._on_obs)
         event_bus.subscribe('pred', self._on_pred)
         event_bus.subscribe('draw', self._on_draw)
-        # event_bus.subscribe('plot', self._on_plot)
+        event_bus.subscribe('plot', self._on_plot)
 
     def _robot_to_world(self, rel_pos):
         chassis = self.robot_manager.viewing_robot.chassis if self.robot_manager.viewing_robot else None
@@ -177,10 +178,39 @@ class VisualizationManager:
                 for ep in armor.light_corners:
                     self._draw_point_main(ep, Color.CYAN, 4)
 
+        # 绘制前哨站
+        outpost = self.device_manager.outpost
+        if outpost is not None:
+            # 绘制中心点
+            self._draw_point_main(outpost.world_pos, Color.BLUE, 8)
+            # 绘制装甲板
+            for armor in outpost.armors:
+                self._draw_point_main(armor.world_pos, Color.WHITE, 4)
+                self._draw_armor_box_main(armor, Color.CYAN)
+                for ep in armor.light_corners:
+                    self._draw_point_main(ep, Color.CYAN, 3)
+
+        # 能量机关
+        rune = self.device_manager.rune
+        if rune is not None:
+            # 绘制中心点
+            center_screen = self._draw_point_main(rune.world_pos, Color.WHITE, 8)
+            # 绘制扇叶中心点和连线
+            for i, leaf_center in enumerate(rune.leaf_centers):
+                leaf_screen = self._draw_point_main(leaf_center, Color.CYAN, 5)
+                if center_screen is not None and leaf_screen is not None:
+                    pg.draw.line(self.screen, Color.CYAN, center_screen, leaf_screen, 2)
+
         # 观测数据
         if obs:
             for obs_armor in obs.obs_armors:
-                self._draw_point_main(self._robot_to_world(obs_armor.rel_pos), Color.YELLOW, 5)
+                obs_armor_world_pos = self._robot_to_world(obs_armor.rel_pos)
+                self._draw_point_main(obs_armor_world_pos, Color.YELLOW, 5)
+                obs_yaw = obs_armor.rel_rpy[2]
+                obs_yaw_vec = np.array([math.cos(obs_yaw), math.sin(obs_yaw), 0.0])
+                obs_yaw_vec_start = world_to_main_screen(obs_armor_world_pos, self.main_screen_center, self.world_scale)
+                obs_yaw_vec_end = world_to_main_screen(obs_armor_world_pos + obs_yaw_vec * 0.5, self.main_screen_center, self.world_scale)
+                pg.draw.line(self.screen, Color.YELLOW, obs_yaw_vec_start, obs_yaw_vec_end, 2)
 
         # 预测数据
         if pred and pred.is_tracking:
@@ -206,7 +236,7 @@ class VisualizationManager:
     def _draw_camera_fov(self, camera):
         camera_main_screen_pos = self._draw_point_main(camera.world_pos, Color.CYAN, 8)
         forward_vec = camera.get_forward_vec()
-        forward_end = camera.world_pos + forward_vec * 30
+        forward_end = camera.world_pos + forward_vec
         forward_main_screen_pos = world_to_main_screen(
             forward_end,
             self.main_screen_center,
@@ -305,6 +335,25 @@ class VisualizationManager:
                 self._draw_armor_box_camera(armor, selected_camera, Color.CYAN)
                 for ep in armor.light_corners:
                     self._draw_point_camera(ep, selected_camera, Color.CYAN, 4)
+
+        # 相机视角前哨站
+        outpost = self.device_manager.outpost
+        if outpost is not None:
+            self._draw_point_camera(outpost.world_pos, selected_camera, Color.BLUE, 6)
+            for armor in outpost.armors:
+                self._draw_point_camera(armor.world_pos, selected_camera, Color.WHITE, 4)
+                self._draw_armor_box_camera(armor, selected_camera, Color.CYAN)
+                for ep in armor.light_corners:
+                    self._draw_point_camera(ep, selected_camera, Color.CYAN, 3)
+
+        # 相机视角能量机关
+        rune = self.device_manager.rune
+        if rune is not None:
+            center_cam = self._draw_point_camera(rune.world_pos, selected_camera, Color.WHITE, 6)
+            for leaf_center in rune.leaf_centers:
+                leaf_cam = self._draw_point_camera(leaf_center, selected_camera, Color.CYAN, 4)
+                if center_cam is not None and leaf_cam is not None:
+                    pg.draw.line(self.screen, Color.CYAN, center_cam, leaf_cam, 2)
 
         if obs:
             for obs_armor in obs.obs_armors:
@@ -483,18 +532,18 @@ class VisualizationManager:
                     # 更新偏航角曲线
                     self.line_obs_yaw.set_data(t_rel, list(self.obs_yaw_vals))
                     self.line_pred_yaw.set_data(t_rel, list(self.pred_yaw_vals))
-                    self.line_mpc_yaw.set_data(t_rel, list(self.mpc_yaw_vals))
+                    # self.line_mpc_yaw.set_data(t_rel, list(self.mpc_yaw_vals))
                     self.line_actual_yaw.set_data(t_rel, list(self.actual_yaw_vals))
                     self.ax_yaw.relim()
                     self.ax_yaw.autoscale_view()
 
                     # 更新俯仰角曲线
-                    self.line_obs_pitch.set_data(t_rel, list(self.obs_pitch_vals))
-                    self.line_pred_pitch.set_data(t_rel, list(self.pred_pitch_vals))
-                    self.line_ballistic_pitch.set_data(t_rel, list(self.ballistic_pitch_vals))
-                    self.line_actual_pitch.set_data(t_rel, list(self.actual_pitch_vals))
-                    self.ax_pitch.relim()
-                    self.ax_pitch.autoscale_view()
+                    # self.line_obs_pitch.set_data(t_rel, list(self.obs_pitch_vals))
+                    # self.line_pred_pitch.set_data(t_rel, list(self.pred_pitch_vals))
+                    # self.line_ballistic_pitch.set_data(t_rel, list(self.ballistic_pitch_vals))
+                    # self.line_actual_pitch.set_data(t_rel, list(self.actual_pitch_vals))
+                    # self.ax_pitch.relim()
+                    # self.ax_pitch.autoscale_view()
 
                     # 刷新画布
                     self.fig.canvas.draw_idle()

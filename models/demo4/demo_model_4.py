@@ -14,6 +14,11 @@ class DemoModel4:
             state_dim=self.state_dim,
             x_add_func=lambda x, d: x + d
         )
+        self.angle_kf = KalmanFilter(
+            state_dim=2,
+            x_add_func=lambda a, b: a + b
+        )
+
         self.ekf.P = np.eye(self.state_dim)
         self.ekf.P[6, 6] = 1.0
         self.ekf.P[7, 7] = 200.0
@@ -61,7 +66,6 @@ class DemoModel4:
         #
         self.cont_yaw = 0.
         self.last_obs_yaw = 0.
-        self.angle_kf = KalmanFilter(state_dim=2, x_add_func=lambda a,b:a+b)
 
     @staticmethod
     def _meas_sub(z, z_pred):
@@ -205,6 +209,21 @@ class DemoModel4:
             z_sub_func=self._meas_sub,
             h_func=h_func, H_jacob=H_jacob
         )
+
+        omega_kf = self.angle_kf.x[1]
+        P_omega_kf = self.angle_kf.P[1, 1]
+        H_omega = np.zeros((1, self.state_dim))
+        H_omega[0, 7] = 1.
+        R_omega = np.eye(1) * P_omega_kf
+
+        z = np.array([omega_kf])
+        y = z - H_omega @ self.ekf.x
+        S = H_omega @ self.ekf.P @ H_omega.T + R_omega
+        K = self.ekf.P @ H_omega.T @ np.linalg.pinv(S)
+
+        self.ekf.x = self.ekf.x + K.flatten() * y[0]
+        self.ekf.P = (np.eye(self.state_dim) - K @ H_omega) @ self.ekf.P
+        self.ekf.P = (self.ekf.P + self.ekf.P.T) / 2
 
     def _get_armor_params(self, k):
         x = self.ekf.x

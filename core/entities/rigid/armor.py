@@ -2,21 +2,27 @@ import numpy as np
 import copy
 
 from core.entities.rigid.rigid import Rigid
+from core.entities.property.robot_type import RobotType
 from config.config_manager import cfg_mgr
 
 
 class Armor(Rigid):
     def __init__(self, armor_id, robot_type, **kwargs):
         super().__init__(**kwargs)
-        cfg = cfg_mgr.get_robot_config(robot_type)
-
         self.armor_id = armor_id  # 装甲板会有多个，每个装甲板先拥有自己的id
         self.robot_type = robot_type
         self.priority = robot_type
 
-        self.armor_size = cfg.armor_size
-        self.light_bar_interval = cfg.light_bar_interval
-        self.light_bar_length = cfg.light_bar_length
+        if robot_type == RobotType.Outpost:
+            cfg = cfg_mgr.get_outpost_config()
+            self.armor_size = cfg.armor_size
+            self.light_bar_interval = cfg.light_bar_interval
+            self.light_bar_length = cfg.light_bar_length
+        else:
+            cfg = cfg_mgr.get_robot_config(robot_type)
+            self.armor_size = cfg.armor_size
+            self.light_bar_interval = cfg.light_bar_interval
+            self.light_bar_length = cfg.light_bar_length
 
         w = self.light_bar_interval
         h = self.light_bar_length

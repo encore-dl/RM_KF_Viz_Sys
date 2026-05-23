@@ -5,6 +5,7 @@ from simulation.managers.tracker_manager import TrackerManager
 from simulation.simulator import Simulator
 
 from models.demo4.demo_tracker_4 import DemoTracker4
+from models.demo5.demo_tracker_5 import DemoTracker5
 
 RESET = True
 
@@ -17,7 +18,7 @@ def main():
     keyboard_manager = KeyboardManager(simulator)
     tracker_manager = TrackerManager()
 
-    tracker = DemoTracker4(simulator.robot_manager)
+    tracker = DemoTracker5(simulator.robot_manager)
     tracker_manager.set_tracker(tracker)
     tracker_manager.run_tracker_thread()
 

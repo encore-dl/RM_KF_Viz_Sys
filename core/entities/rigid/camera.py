@@ -6,7 +6,7 @@ from core.algorithms.math import euler_to_rotation_matrix
 
 class Camera(Rigid):
     def __init__(self, mount_pos=np.zeros(3), mount_rpy=np.zeros(3),
-                 fov=60, max_range=10, **kwargs):
+                 fov=360, max_range=10, **kwargs):
         super().__init__(**kwargs)
         self.mount_pos = mount_pos.copy()   # 相对于云台的安装位置
         self.mount_rpy = mount_rpy.copy()   # 相对于云台的安装姿态

@@ -8,16 +8,16 @@
 采用 **FLU (Front-Left-Up)** 标准：
 
 ```text
-       Z (Up, +)
-       ^
-       |
-       |
-       |      X (Forward, +)
-       |     /
-       |    /
-       |   /
-       |  /
-       O <---------------- Y (Left, +)
+                       Z (Up, +)
+                       ^
+                       |
+                       |
+                       |    X (Forward, +)
+                       |   /
+                       |  /
+                       | /
+      Y (Left, +)      |/
+      <--------------- O 
 ```
 
 | 轴 (Axis) | 定义 (Definition) | 正方向 (+ Direction) | 负方向 (- Direction) |

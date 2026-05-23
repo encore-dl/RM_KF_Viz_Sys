@@ -2,6 +2,7 @@ import pygame.time as pgtime
 
 from config.config_manager import cfg_mgr
 from simulation.managers.robot_manager import RobotManager
+from simulation.managers.device_manager import DeviceManager
 from simulation.managers.motion_manager import MotionManager
 from simulation.managers.sensor_manager import SensorManager
 from simulation.managers.visualization_manager import VisualizationManager
@@ -21,9 +22,10 @@ class Simulator:
 
         self.motion_manager = MotionManager()
         self.robot_manager = RobotManager(self.motion_manager)
+        self.device_manager = DeviceManager(self.motion_manager)
         self.bullet_manager = BulletManager(self.robot_manager)
-        self.sensor_manager = SensorManager(self.robot_manager)
-        self.visualization_manager = VisualizationManager(self.robot_manager, self.bullet_manager)
+        self.sensor_manager = SensorManager(self.robot_manager, self.device_manager)
+        self.visualization_manager = VisualizationManager(self.robot_manager, self.device_manager, self.bullet_manager)
 
     def run_simulator(self):
         self.update()

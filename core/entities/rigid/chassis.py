@@ -6,7 +6,6 @@ from config.config_manager import cfg_mgr
 from core.algorithms.math import euler_to_rotation_matrix, pos_to_tpd
 
 
-
 class Chassis(Rigid):
     """底盘类，包含装甲板"""
     def __init__(self, robot_type, **kwargs):
@@ -51,24 +50,24 @@ class Chassis(Rigid):
             if self.armor_count == 4:
                 if i == 0:  # 前
                     rel_pos = np.array([self.length / 2, 0, offset_z_low])
-                    rel_rpy = np.array([0, 0, 0])
+                    rel_rpy = np.array([0, -15.0 * math.pi / 180.0, 0])
                 elif i == 1:  # 右
                     rel_pos = np.array([0, self.width / 2, offset_z_high])
-                    rel_rpy = np.array([0, 0, math.pi / 2])
+                    rel_rpy = np.array([0, -15.0 * math.pi / 180.0, math.pi / 2])
                 elif i == 2:  # 后
                     rel_pos = np.array([-self.length / 2, 0, offset_z_low])
-                    rel_rpy = np.array([0, 0, math.pi])
+                    rel_rpy = np.array([0, -15.0 * math.pi / 180.0, math.pi])
                 elif i == 3:  # 左
                     rel_pos = np.array([0, -self.width / 2, offset_z_high])
-                    rel_rpy = np.array([0, 0, -math.pi / 2])
+                    rel_rpy = np.array([0, -15.0 * math.pi / 180.0, -math.pi / 2])
             elif self.armor_count == 2:
                 offset_z = self.low_height - center_z
                 if i == 0:  # 前
                     rel_pos = np.array([self.length / 2, 0, offset_z])
-                    rel_rpy = np.array([0, 0, 0])
+                    rel_rpy = np.array([0, -15.0 * math.pi / 180.0, 0])
                 elif i == 1:  # 后
                     rel_pos = np.array([-self.length / 2, 0, offset_z])
-                    rel_rpy = np.array([0, 0, math.pi])
+                    rel_rpy = np.array([0, -15.0 * math.pi / 180.0, math.pi])
 
             armor.mount_pos = rel_pos
             armor.mount_R = euler_to_rotation_matrix(rel_rpy)

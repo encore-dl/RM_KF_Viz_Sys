@@ -18,9 +18,22 @@ class RobotTypeConfig:
 
 
 @dataclass
+class OutpostConfig:
+    radius: float
+    armor_count: int
+    base_height: float
+    height_step: float
+    rotate_speed: float
+    armor_size: str
+    light_bar_interval: float
+    light_bar_length: float
+
+
+@dataclass
 class RuneConfig:
     leaf_count: int
     radius: float
+    height: float
 
 
 @dataclass
@@ -46,6 +59,7 @@ class ConfigManager:
             robot_data = yaml.safe_load(f)
         for name, params in robot_data['Robot'].items():
             self.robots_cfg[name] = RobotTypeConfig(**params)
+        self.outpost_cfg = OutpostConfig(**robot_data['Outpost'])
         self.rune_cfg = RuneConfig(**robot_data['Rune'])
 
         sim_path = os.path.join(config_dir, 'simulator.yaml')
@@ -59,6 +73,9 @@ class ConfigManager:
 
     def get_simulator_config(self):
         return self.sim_cfg
+
+    def get_outpost_config(self):
+        return self.outpost_cfg
 
     def get_rune_config(self):
         return self.rune_cfg

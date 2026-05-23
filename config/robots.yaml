@@ -22,8 +22,8 @@ Robot:
   Sentry:
     length: 0.5
     width: 0.4
-    armor_count: 2
-    high_height: 0.0
+    armor_count: 4
+    high_height: 0.15
     low_height: 0.1
     armor_size: small
     light_bar_interval: 0.135
@@ -39,6 +39,19 @@ Robot:
     light_bar_interval: 0.135
     light_bar_length: 0.055
 
+Outpost:
+  radius: 0.275
+  armor_count: 3
+  base_height: 1.114
+  height_step: 0.102
+  #  rotate_speed: 0
+  rotate_speed: 2.51327
+  armor_size: small
+  light_bar_interval: 0.135
+  light_bar_length: 0.055
+
 Rune:
   leaf_count: 5
   radius: 0.7
+  height: 2.6
+
